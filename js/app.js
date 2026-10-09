@@ -115,10 +115,15 @@ function getFilteredDishes() {
 }
 
 function syncFilterButtons() {
+  const counts = { All: dishes.length, Popular: dishes.filter(d => d.popular).length, Saved: favs.size };
+  dishes.forEach(d => { counts[d.category] = (counts[d.category] || 0) + 1; });
   filtersEl.querySelectorAll('button').forEach(button => {
-    const isActive = button.dataset.category === activeCategory;
+    const cat = button.dataset.category;
+    const isActive = cat === activeCategory;
     button.classList.toggle('active', isActive);
     button.setAttribute('aria-pressed', String(isActive));
+    const base = button.textContent.replace(/\s*\(\d+\)\s*$/, '');
+    if (counts[cat] != null) button.textContent = `${base} (${counts[cat]})`;
   });
 }
 
@@ -189,12 +194,13 @@ function renderDishes() {
   }
   grid.innerHTML = list.map(dish => {
     const saved = favs.has(dish.id);
+    const badge = dish.rating === '4.9' ? '<span class="badge">★ Chef’s pick</span>' : dish.popular ? '<span class="badge">Popular</span>' : '';
     return `
     <article class="food-card">
       <div class="food-image" data-action="view" data-id="${dish.id}" role="button" tabindex="0" aria-label="View ${escapeHtml(dish.name)}" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
         ${dishImg(dish)}
         <span class="veg-dot ${dish.veg ? 'veg' : 'nonveg'}" role="img" aria-label="${dish.veg ? 'Veg' : 'Non-veg'}"></span>
-        ${dish.popular ? '<span class="badge">Popular</span>' : ''}
+        ${badge}
         <button type="button" class="fav-button" data-action="fav" data-id="${dish.id}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Save'} ${escapeHtml(dish.name)}">${saved ? '♥ Saved' : '♡ Save'}</button>
       </div>
       <div class="card-info">
@@ -231,6 +237,7 @@ function toggleFav(id) {
   if (favs.has(id)) { favs.delete(id); showToast(`${dish.name} removed from saved`); }
   else { favs.add(id); showToast(`♥ ${dish.name} saved`); }
   saveFavs();
+  syncFilterButtons();
   renderDishes();
   if (dishDialog.open) openDish(id, true);
 }
@@ -341,7 +348,7 @@ function renderCart() {
   }
   cartItemsEl.innerHTML = cart.map(item => `
     <div class="cart-item">
-      <div class="item-icon" style="background:${escapeHtml(item.color)}" aria-hidden="true">${escapeHtml(item.emoji)}</div>
+      <div class="item-icon has-photo" style="background:${escapeHtml(item.color)}" aria-hidden="true"><img src="${escapeHtml(item.img)}" alt="" loading="lazy" width="92" height="92" onerror="this.remove()" /></div>
       <div class="item-info">
         <b>${escapeHtml(item.name)}</b>
         <small>${format(item.price)} each · <strong>${format(item.price * item.qty)}</strong></small>
@@ -569,7 +576,7 @@ function renderSavedReviews() {
     const saved = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
     saved.forEach(r => {
       const el = document.createElement('article');
-      el.innerHTML = `<div class="stars" aria-label="${r.rating} out of 5 stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p>“${escapeHtml(r.text)}”</p><footer><b>${escapeHtml(r.name)}</b><small>Ordered ${escapeHtml(r.dish)}</small></footer>`;
+      el.innerHTML = `<div class="stars" aria-label="${r.rating} out of 5 stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p>“${escapeHtml(r.text)}”</p><footer><b>${escapeHtml(r.name)}</b><small>Guest review · Ordered ${escapeHtml(r.dish)}</small></footer>`;
       reviewsGrid.prepend(el);
     });
   } catch (e) {}
@@ -802,7 +809,7 @@ if (reviewForm) {
       localStorage.setItem(REVIEWS_KEY, JSON.stringify(saved.slice(0, 12)));
     } catch (e) {}
     const el = document.createElement('article');
-    el.innerHTML = `<div class="stars" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div><p>“${escapeHtml(review.text)}”</p><footer><b>${escapeHtml(review.name)}</b><small>Ordered ${escapeHtml(review.dish)}</small></footer>`;
+    el.innerHTML = `<div class="stars" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div><p>“${escapeHtml(review.text)}”</p><footer><b>${escapeHtml(review.name)}</b><small>Guest review · Ordered ${escapeHtml(review.dish)}</small></footer>`;
     reviewsGrid.prepend(el);
     reviewForm.reset();
     showToast('Thanks! Your review is live');
