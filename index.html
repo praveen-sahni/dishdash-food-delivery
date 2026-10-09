@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="DishDash – order restaurant-quality meals online. Pizza, burgers, Asian and healthy bowls delivered in 25–30 minutes." />
+    <meta name="theme-color" content="#202019" />
+    <meta property="og:title" content="DishDash | Food delivery" />
+    <meta property="og:description" content="Good food. Good mood. Delivered in as little as 25 minutes." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>" />
+    <title>DishDash | Food delivery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#menu">Skip to menu</a>
+
+    <header class="site-header">
+      <a class="logo" href="#home" aria-label="DishDash home"><span>dish</span>dash<span class="dot" aria-hidden="true">.</span></a>
+      <nav id="nav" class="nav" aria-label="Main navigation">
+        <a href="#home">Home</a><a href="#menu">Menu</a><a href="#how-it-works">How it works</a><a href="#about">About us</a>
+      </nav>
+      <div class="header-actions">
+        <button class="location" type="button" aria-label="Select delivery address" aria-haspopup="dialog">⌖ <span id="location-label">New Delhi</span></button>
+        <button id="cart-button" class="cart-button" type="button" aria-label="Open cart" aria-controls="cart" aria-expanded="false" aria-haspopup="dialog">Bag <span id="cart-count" aria-label="items in bag">0</span></button>
+        <button id="menu-button" class="menu-button" type="button" aria-label="Toggle navigation" aria-controls="nav" aria-expanded="false">☰</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="home" class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">YOUR FAVOURITE FOOD, DELIVERED</p>
+          <h1>Good food.<br /><em>Good mood.</em></h1>
+          <p class="hero-text">Restaurant-quality meals delivered to your door in as little as 25 minutes.</p>
+          <form id="search-form" class="search" role="search">
+            <span aria-hidden="true">⌖</span><input id="search-input" type="search" placeholder="What are you craving?" aria-label="Search menu" autocomplete="off" /><button type="submit">Search</button>
+          </form>
+          <div class="hero-proof"><span class="faces" aria-hidden="true">♥ ♥ ♥ ♥</span><span><strong>4.9/5</strong> from 12k+ happy foodies</span></div>
+        </div>
+        <div class="hero-art" role="img" aria-label="Fresh pasta bowl illustration">
+          <div class="leaf leaf-one" aria-hidden="true"></div><div class="leaf leaf-two" aria-hidden="true"></div><div class="leaf leaf-three" aria-hidden="true"></div>
+          <div class="plate" aria-hidden="true"><div class="pasta">〰 〰<br />〰 〰</div><div class="tomato t1"></div><div class="tomato t2"></div><div class="basil b1">✦</div><div class="basil b2">✦</div></div>
+          <div class="float-card time-card" aria-hidden="true"><span>⚡</span><div><b>25–30 min</b><small>Delivery time</small></div></div>
+          <div class="float-card rating-card" aria-hidden="true"><span>★</span><div><b>4.9</b><small>Customer rating</small></div></div>
+        </div>
+      </section>
+
+      <section id="menu" class="menu-section" aria-labelledby="menu-heading">
+        <div class="section-heading"><div><p class="eyebrow">EXPLORE THE MENU</p><h2 id="menu-heading">Made for your cravings</h2></div><button id="view-all" class="text-button" type="button">View all dishes <span aria-hidden="true">→</span></button></div>
+        <div id="filters" class="filters" aria-label="Menu categories" role="group">
+          <button type="button" class="active" data-category="All" aria-pressed="true">All</button><button type="button" data-category="Popular" aria-pressed="false">Popular</button><button type="button" data-category="Pizza" aria-pressed="false">Pizza</button><button type="button" data-category="Burger" aria-pressed="false">Burger</button><button type="button" data-category="Asian" aria-pressed="false">Asian</button><button type="button" data-category="Healthy" aria-pressed="false">Healthy</button>
+        </div>
+        <p id="results-count" class="results-count" aria-live="polite"></p>
+        <div id="food-grid" class="food-grid"></div>
+      </section>
+
+      <section id="how-it-works" class="steps-section" aria-labelledby="steps-heading">
+        <div><p class="eyebrow">SIMPLE AS 1, 2, 3</p><h2 id="steps-heading">Your food journey,<br />made easy.</h2><a class="cta-button" href="#menu">Order now</a></div>
+        <div class="steps"><article><span>01</span><h3>Pick your dish</h3><p>Choose from local favorites and cuisine you love.</p></article><article><span>02</span><h3>We get cooking</h3><p>Our kitchen partners prepare it fresh for you.</p></article><article><span>03</span><h3>Enjoy at home</h3><p>Track your order right to your doorstep.</p></article></div>
+      </section>
+    </main>
+
+    <footer id="about"><a class="logo" href="#home"><span>dish</span>dash<span class="dot" aria-hidden="true">.</span></a><p>Good food is always a good idea.</p><small>© 2026 DishDash. Crafted with flavour.</small></footer>
+
+    <aside id="cart" class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+      <div class="cart-header"><h2 id="cart-title">Your order</h2><button id="close-cart" type="button" aria-label="Close cart">×</button></div>
+      <div id="cart-items" class="cart-items"><p class="empty-cart">Your bag is waiting for something delicious.</p></div>
+      <div class="cart-footer">
+        <div class="totals">
+          <div class="total-row"><span>Subtotal</span><strong id="cart-subtotal">₹0</strong></div>
+          <div class="total-row"><span>Delivery <small id="delivery-note">(free over ₹499)</small></span><strong id="cart-delivery">₹0</strong></div>
+          <div class="total-row grand-total"><span>Total</span><strong id="cart-total">₹0</strong></div>
+        </div>
+        <button id="checkout" type="button">Checkout</button>
+      </div>
+    </aside>
+    <div id="overlay" class="overlay"></div>
+
+    <dialog id="location-dialog" class="location-dialog" aria-labelledby="location-title">
+      <form method="dialog" id="location-form">
+        <h2 id="location-title">Delivery location</h2>
+        <p>Enter your area to see nearby dishes.</p>
+        <label class="visually-hidden" for="location-input">Delivery area</label>
+        <input id="location-input" name="location" type="text" placeholder="e.g. New Delhi" maxlength="60" autocomplete="address-level2" />
+        <div class="dialog-actions">
+          <button type="button" id="location-cancel" class="ghost-button">Cancel</button>
+          <button type="submit" id="location-save" class="solid-button">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
