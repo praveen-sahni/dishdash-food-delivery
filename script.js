@@ -109,6 +109,36 @@ function stars(rating) {
   return '★'.repeat(full) + '☆'.repeat(5 - full);
 }
 
+function cartQty(id) {
+  const item = cart.find(i => i.id === id);
+  return item ? item.qty : 0;
+}
+
+function cardControlHtml(dish) {
+  const qty = cartQty(dish.id);
+  if (qty === 0) return `<button type="button" class="add-button" data-action="add" data-id="${dish.id}" aria-label="Add ${escapeHtml(dish.name)} to bag">Add +</button>`;
+  return `<div class="card-stepper" role="group" aria-label="Quantity for ${escapeHtml(dish.name)}">
+    <button type="button" data-action="decrease" data-id="${dish.id}" aria-label="Remove one ${escapeHtml(dish.name)}">−</button>
+    <strong aria-live="polite">${qty}</strong>
+    <button type="button" data-action="increase" data-id="${dish.id}" aria-label="Add one ${escapeHtml(dish.name)}">+</button>
+  </div>`;
+}
+
+function updateCardControl(id) {
+  const dish = dishes.find(d => d.id === id);
+  if (!dish) return;
+  const btn = grid.querySelector(`[data-id="${id}"]`);
+  if (!btn) return;
+  const row = btn.closest('.price-row');
+  if (!row) return;
+  const focusedAction = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.action : null;
+  row.innerHTML = `<strong>${format(dish.price)}</strong>${cardControlHtml(dish)}`;
+  if (focusedAction && focusedAction !== 'add') {
+    const next = row.querySelector(`[data-action="${focusedAction}"]`) || row.querySelector('strong');
+    if (next && next.focus) { try { next.focus({ preventScroll: true }); } catch (e) { next.focus(); } }
+  }
+}
+
 function renderDishes() {
   const list = getFilteredDishes();
   const parts = [];
@@ -126,7 +156,7 @@ function renderDishes() {
   grid.innerHTML = list.map(dish => `
     <article class="food-card">
       <div class="food-image" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
-        <span class="veg-dot ${dish.veg ? 'veg' : 'nonveg'}" title="${dish.veg ? 'Veg' : 'Non-veg'}"></span>
+        <span class="veg-dot ${dish.veg ? 'veg' : 'nonveg'}" role="img" aria-label="${dish.veg ? 'Veg' : 'Non-veg'}"></span>
         ${dish.popular ? '<span class="badge">Popular</span>' : ''}
         <span class="food-emoji" aria-hidden="true">${escapeHtml(dish.emoji)}</span>
       </div>
@@ -135,7 +165,7 @@ function renderDishes() {
         <h3>${escapeHtml(dish.name)}</h3>
         <p class="desc">${escapeHtml(dish.desc)}</p>
         <div class="meta"><span title="Rated ${escapeHtml(dish.rating)} out of 5"><span class="stars" aria-hidden="true">${stars(dish.rating)}</span> ${escapeHtml(dish.rating)}</span></div>
-        <div class="price-row"><strong>${format(dish.price)}</strong><button type="button" class="add-button" data-id="${dish.id}" aria-label="Add ${escapeHtml(dish.name)} to bag">Add +</button></div>
+        <div class="price-row"><strong>${format(dish.price)}</strong>${cardControlHtml(dish)}</div>
       </div>
     </article>`).join('');
 }
@@ -241,7 +271,21 @@ function addToCart(id) {
   if (existing) existing.qty = Math.min(99, existing.qty + 1);
   else cart.push({ ...dish, qty: 1 });
   saveCart(); renderCart();
-  showToast(`${dish.name} added to your bag`);
+  updateCardControl(id);
+  cartButton.classList.remove('pulse');
+  void cartButton.offsetWidth;
+  cartButton.classList.add('pulse');
+  showToast(`✓ ${dish.name} added to your bag`);
+}
+
+function changeCartQty(id, delta) {
+  const item = cart.find(d => d.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(d => d !== item);
+  if (item.qty > 99) item.qty = 99;
+  saveCart(); renderCart();
+  updateCardControl(id);
 }
 
 function showToast(message) {
@@ -288,9 +332,25 @@ function openCheckout() {
 
 function showPane(n) {
   checkoutForm.querySelectorAll('fieldset').forEach(fs => { fs.hidden = Number(fs.dataset.pane) !== n; });
-  checkoutDialog.querySelectorAll('.checkout-steps li').forEach(li => li.classList.toggle('active', Number(li.dataset.step) === n));
+  checkoutDialog.querySelectorAll('.checkout-steps li').forEach(li => {
+    const isActive = Number(li.dataset.step) === n;
+    li.classList.toggle('active', isActive);
+    if (isActive) li.setAttribute('aria-current', 'step');
+    else li.removeAttribute('aria-current');
+  });
   const first = checkoutDialog.querySelector('fieldset:not([hidden]) input, fieldset:not([hidden]) button');
   if (first) setTimeout(() => first.focus(), 50);
+}
+
+function setFieldError(input, msgId, message) {
+  const err = document.getElementById(msgId);
+  if (message) {
+    input.setAttribute('aria-invalid', 'true');
+    if (err) { err.textContent = message; err.hidden = false; }
+  } else {
+    input.removeAttribute('aria-invalid');
+    if (err) { err.textContent = ''; err.hidden = true; }
+  }
 }
 
 function placeOrder(data) {
@@ -301,7 +361,9 @@ function placeOrder(data) {
   try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
   $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${eta}`;
   orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, your food is being prepared. Arriving in <b>${eta}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><p class="muted">A confirmation was “sent” to ${escapeHtml(data.phone)}. Cold food? We refund or redeliver.</p>`;
+  const ids = cart.map(i => i.id);
   cart = []; promoCode = null; saveCart(); renderCart();
+  ids.forEach(updateCardControl);
   showPane(3);
 }
 
@@ -315,8 +377,14 @@ filtersEl.addEventListener('click', e => {
 sortSelect.addEventListener('change', () => { sortBy = sortSelect.value; renderDishes(); });
 vegCheckbox.addEventListener('change', () => { vegOnly = vegCheckbox.checked; renderDishes(); });
 grid.addEventListener('click', e => {
-  const btn = e.target.closest('.add-button');
-  if (btn) addToCart(Number(btn.dataset.id));
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.action === 'add' || btn.dataset.action === 'increase') {
+    if (cartQty(id) === 0) addToCart(id);
+    else changeCartQty(id, 1);
+  }
+  else if (btn.dataset.action === 'decrease') changeCartQty(id, -1);
 });
 cartItemsEl.addEventListener('click', e => {
   const btn = e.target.closest('button[data-action]');
@@ -324,21 +392,22 @@ cartItemsEl.addEventListener('click', e => {
   const id = Number(btn.dataset.id);
   const item = cart.find(d => d.id === id);
   if (!item) return;
-  if (btn.dataset.action === 'increase') item.qty = Math.min(99, item.qty + 1);
-  else if (btn.dataset.action === 'decrease') { item.qty -= 1; if (item.qty <= 0) cart = cart.filter(d => d !== item); }
-  else if (btn.dataset.action === 'remove') { cart = cart.filter(d => d.id !== id); showToast(`${item.name} removed`); }
-  saveCart(); renderCart();
+  if (btn.dataset.action === 'increase') changeCartQty(id, 1);
+  else if (btn.dataset.action === 'decrease') changeCartQty(id, -1);
+  else if (btn.dataset.action === 'remove') { cart = cart.filter(d => d.id !== id); showToast(`${item.name} removed`); saveCart(); renderCart(); updateCardControl(id); }
 });
 clearCartBtn.addEventListener('click', () => {
   if (!cart.length) return;
+  const ids = cart.map(i => i.id);
   cart = []; promoCode = null; saveCart(); renderCart(); showToast('Bag cleared');
+  ids.forEach(updateCardControl);
 });
 promoForm.addEventListener('submit', e => {
   e.preventDefault();
   const code = promoInput.value.trim().toUpperCase();
   if (!code) return;
-  if (PROMOS[code]) { promoCode = code; saveCart(); renderCart(); promoMsg.textContent = `${code} applied: ${PROMOS[code].label}.`; showToast(`Promo ${code} applied`); }
-  else { promoMsg.textContent = 'That code is not valid. Try WELCOME10.'; }
+  if (PROMOS[code]) { promoCode = code; saveCart(); renderCart(); promoMsg.classList.remove('error'); promoMsg.textContent = `✓ ${code} applied: ${PROMOS[code].label}.`; showToast(`Promo ${code} applied`); }
+  else { promoMsg.classList.add('error'); promoMsg.textContent = 'That code is not valid. Try WELCOME10.'; promoInput.focus(); promoInput.select(); }
 });
 $('#promo-remove').addEventListener('click', () => { promoCode = null; promoInput.value = ''; promoMsg.textContent = ''; saveCart(); renderCart(); });
 cartButton.addEventListener('click', () => toggleCart(true));
@@ -355,8 +424,15 @@ checkoutForm.addEventListener('submit', e => {
     const name = checkoutForm.name.value.trim();
     const phone = checkoutForm.phone.value.trim();
     const address = checkoutForm.address.value.trim();
-    if (!name || !phone || !address) { showToast('Please fill name, phone and address'); return; }
-    if (!/^[0-9+ \-]{10,15}$/.test(phone)) { showToast('Enter a valid phone number'); checkoutForm.phone.focus(); return; }
+    let firstInvalid = null;
+    if (!name) { setFieldError(checkoutForm.name, 'err-name', 'Please enter your name.'); firstInvalid = firstInvalid || checkoutForm.name; }
+    else setFieldError(checkoutForm.name, 'err-name', '');
+    if (!phone) { setFieldError(checkoutForm.phone, 'err-phone', 'Please enter your phone number.'); firstInvalid = firstInvalid || checkoutForm.phone; }
+    else if (!/^[0-9+ \-]{10,15}$/.test(phone)) { setFieldError(checkoutForm.phone, 'err-phone', 'Enter a valid 10-digit phone number.'); firstInvalid = firstInvalid || checkoutForm.phone; }
+    else setFieldError(checkoutForm.phone, 'err-phone', '');
+    if (!address) { setFieldError(checkoutForm.address, 'err-address', 'Please enter your delivery address.'); firstInvalid = firstInvalid || checkoutForm.address; }
+    else setFieldError(checkoutForm.address, 'err-address', '');
+    if (firstInvalid) { firstInvalid.focus(); showToast('Please fix the highlighted fields'); return; }
     showPane(2); return;
   }
   if (next === '3') {
@@ -367,7 +443,7 @@ checkoutForm.addEventListener('submit', e => {
 });
 searchForm.addEventListener('submit', e => {
   e.preventDefault();
-  query = searchInput.value; renderDishes();
+  query = searchInput.value; grid.setAttribute('aria-busy', 'true'); renderDishes();
   $('#menu').scrollIntoView({ behavior: 'smooth' });
 });
 searchInput.addEventListener('input', () => {

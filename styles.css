@@ -14,7 +14,10 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; color: var(--ink); font-family: 'DM Sans', sans-serif; background: #fff; }
+body { margin: 0; color: var(--ink); font-family: 'DM Sans', sans-serif; background: #fff; line-height: 1.5; }
+button, select, input, textarea { font-family: inherit; }
+button { transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
+button:active { transform: scale(0.97); }
 body.no-scroll { overflow: hidden; }
 .hidden { display: none !important; }
 
@@ -241,9 +244,13 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 800px) {
   .site-header { padding: 0 22px; }
   .nav { position: absolute; top: 82px; left: 0; right: 0; background: #fff; padding: 20px 22px; display: none; flex-direction: column; border-bottom: 1px solid var(--line); }
-  .nav.open { display: flex; }
+  .nav.open { display: flex; animation: navSlide 0.18s ease-out; }
+@keyframes navSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  .nav.open { box-shadow: 0 18px 30px #00000014; }
   .menu-button { display: block; }
-  .location { display: none; }
+  .location span { display: none; }
+  .location { font-size: 18px; padding: 8px; }
+  .location::after { content: '▾'; font-size: 10px; margin-left: 2px; }
   .hero { grid-template-columns: 1fr; padding: 50px 25px 35px; }
   .hero-art { min-height: 340px; margin-top: 10px; }
   .food-grid { grid-template-columns: repeat(2, 1fr); }
@@ -262,3 +269,48 @@ body.no-scroll { overflow: hidden; }
   .footer-grid { grid-template-columns: 1fr; }
   .cta-banner { flex-direction: column; align-items: start; }
 }
+
+/* ---- UI/UX polish pass ---- */
+.filters button { min-height: 40px; }
+.filters { scrollbar-width: thin; }
+@media (max-width: 800px) {
+  .filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; margin: 0 -25px 16px; padding-left: 25px; padding-right: 25px; }
+  .filters button { flex-shrink: 0; }
+}
+
+.food-emoji { transition: transform 0.2s; }
+.food-card:hover .food-emoji { transform: scale(1.12) rotate(-3deg); }
+.add-button.in-cart { background: var(--ink); color: #fff; }
+.card-stepper { display: flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; border-radius: 8px; padding: 2px; }
+.card-stepper button { border: 0; background: transparent; color: #fff; width: 30px; height: 30px; font-size: 16px; cursor: pointer; border-radius: 6px; line-height: 1; }
+.card-stepper button:hover { background: #ffffff2b; }
+.card-stepper strong { min-width: 22px; text-align: center; font-size: 14px; }
+
+.cart-button.pulse { animation: cartPulse 0.4s; }
+@keyframes cartPulse { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+.qty-btn { width: 34px; height: 34px; }
+.qty-btn:active { transform: scale(0.92); }
+
+.food-grid[aria-busy="true"] .food-card { opacity: 0.55; }
+
+.hero-dish, .float-card { animation: floatY 5s ease-in-out infinite; }
+.hero-dish-a { animation-delay: -1.5s; }
+.hero-dish-b { animation-delay: -3s; }
+.float-card { animation-delay: -2s; }
+@keyframes floatY { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+
+.cta-button { transition: transform 0.15s, box-shadow 0.15s, background 0.15s; box-shadow: 0 8px 20px #e8502a33; }
+.cta-button:hover { transform: translateY(-2px); box-shadow: 0 12px 26px #e8502a44; }
+
+.field-error { color: var(--red); font-size: 12px; margin: 2px 0 0; font-weight: 500; }
+.checkout-dialog input[aria-invalid="true"], .checkout-dialog textarea[aria-invalid="true"] { border-color: var(--red); background: #fff5f4; }
+#promo-msg.error { color: var(--red); }
+
+.toast { display: flex; gap: 8px; align-items: center; }
+.toast.show { animation: toastUp 0.25s ease-out; }
+@keyframes toastUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.sort-wrap select { min-height: 40px; }
+.veg-toggle { min-height: 40px; }
+.veg-toggle input { width: 18px; height: 18px; accent-color: var(--green); }

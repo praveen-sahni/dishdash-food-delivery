@@ -183,14 +183,14 @@
 
     <dialog id="checkout-dialog" class="checkout-dialog" aria-labelledby="checkout-title">
       <h2 id="checkout-title">Checkout</h2>
-      <ol class="checkout-steps" aria-hidden="true"><li data-step="1">Details</li><li data-step="2">Payment</li><li data-step="3">Done</li></ol>
+      <ol class="checkout-steps"><li data-step="1">Details</li><li data-step="2">Payment</li><li data-step="3">Done</li></ol>
       <div id="checkout-summary" class="checkout-summary" aria-live="polite"></div>
       <form id="checkout-form" novalidate>
         <fieldset data-pane="1">
           <legend>Delivery details</legend>
-          <label>Full name<input name="name" required autocomplete="name" placeholder="Aarav Sharma" /></label>
-          <label>Phone<input name="phone" required inputmode="tel" pattern="[0-9+ -]{10,15}" placeholder="98765 43210" /></label>
-          <label>Address<textarea name="address" required rows="2" placeholder="Flat, street, landmark"></textarea></label>
+          <label>Full name *<input name="name" required autocomplete="name" placeholder="Aarav Sharma" aria-describedby="err-name" /><p class="field-error" id="err-name" hidden></p></label>
+          <label>Phone *<input name="phone" required inputmode="tel" pattern="[0-9+ -]{10,15}" placeholder="98765 43210" aria-describedby="err-phone" /><p class="field-error" id="err-phone" hidden></p></label>
+          <label>Address *<textarea name="address" required rows="2" placeholder="Flat, street, landmark" aria-describedby="err-address"></textarea><p class="field-error" id="err-address" hidden></p></label>
           <div class="dialog-actions"><button type="button" class="ghost-button" id="checkout-cancel">Back to bag</button><button type="submit" class="solid-button" data-next="2">Continue to payment</button></div>
         </fieldset>
         <fieldset data-pane="2" hidden>
