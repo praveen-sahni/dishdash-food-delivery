@@ -1,5 +1,6 @@
-import { dishes, FREE_DELIVERY_THRESHOLD } from './data.js';
+import { dishes, FREE_DELIVERY_THRESHOLD, SITE } from './data.js';
 import { calcBreakup, formatINR as format, isValidEmail, isValidPhone, normalizePromo, resolvePromo } from './pricing.js';
+import { getPayMode, startPayment } from './payments.js';
 
 const CART_KEY = 'dishdash-cart-v1';
 const LOCATION_KEY = 'dishdash-location-v1';
@@ -543,11 +544,12 @@ function setFieldError(input, msgId, message) {
 }
 
 function placeOrder(data) {
-  const { total } = priceBreakup();
+  const { subtotal, discount, delivery, tax, total } = priceBreakup();
   const id = 'DD-' + Math.floor(100000 + Math.random() * 900000);
+  const idempotencyKey = (crypto.randomUUID ? crypto.randomUUID() : `key-${Date.now()}-${Math.floor(Math.random() * 1e9)}`);
   const slot = slotLabel(data.slot);
   const items = cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price }));
-  const order = { id, items, subtotal: format(cart.reduce((s, i) => s + i.price * i.qty, 0)), total: format(total), eta: data.slot === 'asap' ? '25–30 min' : slot, slot, slotLabel: slot, name: data.name, phone: data.phone, address: data.address, pay: data.pay, at: new Date().toISOString(), status: 'active' };
+  const order = { id, idempotencyKey, items, subtotal: format(subtotal), discount: format(discount), delivery: delivery === 0 ? 'FREE' : format(delivery), tax: format(tax), total: format(total), eta: data.slot === 'asap' ? '25–30 min' : slot, slot, slotLabel: slot, name: data.name, phone: data.phone, address: data.address, pay: data.pay, paymentId: data.paymentId || null, payMode: getPayMode(), at: new Date().toISOString(), status: 'active' };
   try {
     localStorage.setItem(ORDER_KEY, JSON.stringify(order));
     const orders = [order, ...getOrders()];
@@ -560,8 +562,12 @@ function placeOrder(data) {
       try { localStorage.setItem(ADDR_KEY, JSON.stringify(addrs)); } catch (e) {}
     }
   }
+  const bizLine = SITE.gstin || SITE.fssai
+    ? `<small>GSTIN ${escapeHtml(SITE.gstin || '—')} · FSSAI ${escapeHtml(SITE.fssai || '—')}</small>`
+    : `<small class="field-error">Demo receipt — GSTIN/FSSAI not configured yet (see LAUNCH_CHECKLIST).</small>`;
+  const itemRows = items.map(i => `<div class="total-row"><span>${escapeHtml(i.name)} × ${i.qty}</span><strong>${format(i.price * i.qty)}</strong></div>`).join('');
   $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${order.eta}`;
-  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, arriving <b>${escapeHtml(order.eta)}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><p class="muted">Slot: ${escapeHtml(slot)} · <button type="button" class="link-button" data-reorder-latest>Reorder these items</button></p><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol>`;
+  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, arriving <b>${escapeHtml(order.eta)}</b> · Paying via ${escapeHtml(data.pay)}${data.paymentId ? ` · <small>${escapeHtml(data.paymentId)}</small>` : ''} · Total <b>${format(total)}</b>.</p><p class="muted">Slot: ${escapeHtml(slot)} · Key <small>${escapeHtml(idempotencyKey)}</small> · <button type="button" class="link-button" data-reorder-latest>Reorder these items</button> · <button type="button" class="link-button" data-print-invoice>Print invoice</button></p><div class="invoice" id="invoice"><b>${escapeHtml(SITE.shopName)} — Tax Invoice (demo)</b>${bizLine}${itemRows}<div class="total-row"><span>Subtotal</span><strong>${format(subtotal)}</strong></div>${discount ? `<div class="total-row"><span>Discount</span><strong>−${format(discount)}</strong></div>` : ''}<div class="total-row"><span>Delivery</span><strong>${delivery === 0 ? 'FREE' : format(delivery)}</strong></div><div class="total-row"><span>GST (5%)</span><strong>${format(tax)}</strong></div><div class="total-row grand-total"><span>Total</span><strong>${format(total)}</strong></div></div><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol>`;
   const ids = cart.map(i => i.id);
   cart = []; promoCode = null; saveCart(); renderCart(); renderOrders();
   ids.forEach(updateCardControl);
@@ -707,14 +713,33 @@ checkoutForm.addEventListener('submit', e => {
     showPane(2); return;
   }
   if (next === '3') {
-    placeOrder({
-      name: checkoutForm.name.value.trim(),
-      phone: checkoutForm.phone.value.trim(),
-      address: checkoutForm.address.value.trim(),
-      slot: (checkoutForm.querySelector('input[name="slot"]:checked') || {}).value || 'asap',
-      saveAddr: checkoutForm.querySelector('#addr-save')?.checked,
-      pay: (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || 'UPI'
-    });
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+    (async () => {
+      try {
+        const { total } = priceBreakup();
+        const payment = await startPayment({
+          amountPaise: Math.round(total * 100),
+          orderId: `pending-${Date.now()}`,
+          name: checkoutForm.name.value.trim(),
+          phone: checkoutForm.phone.value.trim()
+        });
+        placeOrder({
+          name: checkoutForm.name.value.trim(),
+          phone: checkoutForm.phone.value.trim(),
+          address: checkoutForm.address.value.trim(),
+          slot: (checkoutForm.querySelector('input[name="slot"]:checked') || {}).value || 'asap',
+          saveAddr: checkoutForm.querySelector('#addr-save')?.checked,
+          pay: (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || 'UPI',
+          paymentId: payment.paymentId
+        });
+      } catch (err) {
+        showToast(err?.message || 'Payment did not complete — no charge made');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Place order';
+      }
+    })();
     return;
   }
   if (next === '1') { showPane(1); return; }
@@ -724,6 +749,7 @@ orderConfirm.addEventListener('click', e => {
     const orders = getOrders();
     if (orders[0]) { checkoutDialog.close(); reorderItems(orders[0].items); }
   }
+  if (e.target.closest('[data-print-invoice]')) window.print();
 });
 if (ordersList) ordersList.addEventListener('click', e => {
   const reorder = e.target.closest('[data-reorder]');
@@ -849,6 +875,17 @@ loadState();
 syncFilterButtons();
 renderDishes();
 renderCart();
+
+// Fill real business details from SITE config; placeholders stay visible until configured.
+document.querySelectorAll('[data-site="phone"]').forEach(el => {
+  if (SITE.supportPhone) { el.textContent = SITE.supportPhone; if (el.tagName === 'A') el.href = SITE.supportPhoneHref || `tel:${SITE.supportPhone.replace(/\s/g, '')}`; }
+});
+document.querySelectorAll('[data-site="email"]').forEach(el => {
+  if (SITE.supportEmail) { el.textContent = SITE.supportEmail; if (el.tagName === 'A') el.href = `mailto:${SITE.supportEmail}`; }
+});
+document.querySelectorAll('[data-site="fssai"]').forEach(el => { el.textContent = SITE.fssai ? `FSSAI Lic. No. ${SITE.fssai}` : 'FSSAI license: pending — see launch checklist'; });
+const payNote = $('#pay-mode-note');
+if (payNote) payNote.textContent = getPayMode() === 'live' ? 'Secured by Razorpay — UPI, cards & netbanking.' : 'Demo mode — no charge. Set a payments key to go live.';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

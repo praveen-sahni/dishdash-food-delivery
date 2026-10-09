@@ -146,7 +146,7 @@
         <h2 id="faq-heading">Questions, answered</h2>
         <details open><summary>How fast is delivery?</summary><p>Most orders arrive in 25–30 minutes. Each dish shows its estimate before you order.</p></details>
         <details><summary>What are the delivery fees?</summary><p>₹29 flat. <strong>Free over ₹499.</strong> Try code <code>WELCOME10</code> for 10% off your first order.</p></details>
-        <details><summary>What if my food arrives cold?</summary><p>We refund or redeliver — no questions asked. Reply in the confirmation screen or contact <a href="mailto:hello@dishdash.example">hello@dishdash.example</a>.</p></details>
+        <details><summary>What if my food arrives cold?</summary><p>We refund or redeliver — no questions asked. See our <a href="refunds.html">refund policy</a> or contact <a href="mailto:hello@dishdash.example" data-site="email">our support</a>.</p></details>
         <details><summary>Do you have veg options?</summary><p>Yes — toggle <strong>Veg only</strong> above the menu. Dishes marked with a green dot are vegetarian.</p></details>
       </section>
 
@@ -158,9 +158,9 @@
 
     <footer id="about" class="site-footer">
       <div class="footer-grid">
-        <div><a class="logo" href="#home"><span>dish</span>dash<span class="dot" aria-hidden="true">.</span></a><p>Good food is always a good idea.</p><p class="footer-contact">⏱ 11am–11pm daily<br />✉️ <a href="mailto:hello@dishdash.example">hello@dishdash.example</a><br />☎️ <a href="tel:+911140000000">+91 11 4000 0000</a></p></div>
-        <nav aria-label="Explore"><b>Explore</b><a href="#menu">Menu</a><a href="#how-it-works">How it works</a><a href="#reviews">Reviews</a><a href="#faq">FAQ</a></nav>
-        <nav aria-label="Company"><b>Company</b><a href="#about">About us</a><a href="areas/andheri.html">Andheri West</a><a href="areas/bandra.html">Bandra</a><a href="areas/connaught-place.html">Connaught Place</a></nav>
+        <div><a class="logo" href="#home"><span>dish</span>dash<span class="dot" aria-hidden="true">.</span></a><p>Good food is always a good idea.</p><p class="footer-contact">⏱ 11am–11pm daily<br />✉️ <a href="mailto:hello@dishdash.example" data-site="email">hello@dishdash.example</a><br />☎️ <a href="tel:+911140000000" data-site="phone">+91 11 4000 0000</a><br /><small data-site="fssai"></small></p></div>
+        <nav aria-label="Explore"><b>Explore</b><a href="#menu">Menu</a><a href="#how-it-works">How it works</a><a href="#reviews">Reviews</a><a href="#faq">FAQ</a><a href="#orders">Your orders</a></nav>
+        <nav aria-label="Company"><b>Company</b><a href="#about">About us</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refunds.html">Refunds</a><a href="admin.html">Kitchen login</a><a href="areas/andheri.html">Andheri West</a><a href="areas/bandra.html">Bandra</a><a href="areas/connaught-place.html">Connaught Place</a></nav>
         <div class="newsletter"><b>Get ₹100 off</b><p>One tasty email a week. No spam. Share <button type="button" id="my-code" class="code-chip dark" title="Click to copy your referral code">DD-XXXX</button> — friends get ₹50 off.</p><form id="newsletter-form" data-endpoint="" novalidate><label class="visually-hidden" for="newsletter-email">Email address</label><input id="newsletter-email" type="email" placeholder="you@example.com" autocomplete="email" required /><button type="submit">Join</button></form><small id="newsletter-msg" aria-live="polite"></small></div>
       </div>
       <div class="footer-bottom"><small>© 2026 DishDash. Crafted with flavour.</small><small id="last-order" aria-live="polite"></small></div>
@@ -218,7 +218,8 @@
           <div class="dialog-actions"><button type="button" class="ghost-button" id="checkout-cancel">Back to bag</button><button type="submit" class="solid-button" data-next="2">Continue to payment</button></div>
         </fieldset>
         <fieldset data-pane="2" hidden>
-          <legend>Payment (demo — no charge)</legend>
+          <legend>Payment</legend>
+          <p class="muted" id="pay-mode-note" aria-live="polite"></p>
           <label class="pay-option"><input type="radio" name="pay" value="UPI" checked /> UPI</label>
           <label class="pay-option"><input type="radio" name="pay" value="Card" /> Card</label>
           <label class="pay-option"><input type="radio" name="pay" value="COD" /> Cash on delivery</label>

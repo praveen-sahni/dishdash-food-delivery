@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Kitchen · DishDash</title>
+<link rel="stylesheet" href="styles.css" /></head>
+<body style="max-width:900px;margin:0 auto;padding:40px 22px">
+<p><a href="./">← Back to DishDash</a></p>
+<h1>Kitchen dashboard (local preview)</h1>
+<p><small>Interim tool until the backend admin ships. Reads orders stored in this browser only. Protect with a password before sharing.</small></p>
+<div style="display:flex;gap:8px;margin:16px 0"><button id="exp-json" type="button">Export JSON</button><button id="exp-csv" type="button">Export CSV</button><button id="clear" type="button">Clear local orders</button></div>
+<div id="list" style="display:grid;gap:10px"></div>
+<script type="module">
+const KEY = 'dishdash-orders-v1';
+const get = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+const list = document.getElementById('list');
+const render = () => {
+  const orders = get();
+  list.innerHTML = orders.length ? orders.map(o => `<article style="border:1px solid #e6e0d5;border-radius:10px;padding:12px"><b>${o.id}</b> · ${o.status} · ${o.total} · ${o.slotLabel || o.eta}<br><small>${(o.items || []).map(i => `${i.name} × ${i.qty}`).join(', ')}</small><br><small>${o.name} · ${o.phone} · ${o.address}</small></article>`).join('') : '<p>No local orders yet.</p>';
+};
+document.getElementById('exp-json').onclick = () => {
+  const blob = new Blob([JSON.stringify(get(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.json'; a.click();
+};
+document.getElementById('exp-csv').onclick = () => {
+  const rows = [['id', 'status', 'total', 'slot', 'name', 'phone', 'address', 'items', 'at']];
+  get().forEach(o => rows.push([o.id, o.status, o.total, o.slotLabel || o.eta, o.name, o.phone, `"${(o.address || '').replace(/"/g, '""')}"`, `"${(o.items || []).map(i => `${i.name}x${i.qty}`).join('; ')}"`, o.at]));
+  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.csv'; a.click();
+};
+document.getElementById('clear').onclick = () => { if (confirm('Clear all local orders?')) { localStorage.removeItem(KEY); render(); } };
+render();
+</script>
+</body>
+</html>

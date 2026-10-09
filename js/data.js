@@ -23,3 +23,18 @@ export const DELIVERY_FEE = 29;
 export const TAX_RATE = 0.05;
 export const REFERRAL_OFF = 50;
 export const REFERRAL_MIN = 199;
+
+// Single place for real business details. Fill these in before going live —
+// the site renders placeholders wherever a value is still empty.
+export const SITE = {
+  shopName: 'DishDash',
+  supportPhone: '', // e.g. '+91 98765 43210'
+  supportPhoneHref: '', // e.g. 'tel:+919876543210'
+  supportEmail: '', // e.g. 'care@dishdash.in'
+  addressLine: '', // e.g. '14 Main Market, Connaught Place, New Delhi 110001'
+  hours: '11am–11pm daily',
+  fssai: '', // e.g. '10012345678901' — legally required to sell food online in India
+  gstin: '', // e.g. '07ABCDE1234F1Z5' — required for GST invoices
+  razorpayKeyId: '', // live payments key; empty = demo mode (no charge)
+  newsletterEndpoint: '' // backend URL to POST {email}; empty = local mock mode
+};

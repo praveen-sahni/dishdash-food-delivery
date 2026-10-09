@@ -1,7 +1,8 @@
 const CACHE = 'dishdash-v2';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'site.webmanifest',
-  'js/app.js', 'js/data.js', 'js/pricing.js',
+  'js/app.js', 'js/data.js', 'js/pricing.js', 'js/payments.js',
+  'privacy.html', 'terms.html', 'refunds.html',
   'images/icon.svg', 'images/dish-1.svg', 'images/dish-4.svg', 'images/dish-8.svg'
 ];
 

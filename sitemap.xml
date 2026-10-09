@@ -4,4 +4,7 @@
   <url><loc>https://praveen-sahni.github.io/dishdash-food-delivery/areas/andheri.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://praveen-sahni.github.io/dishdash-food-delivery/areas/bandra.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://praveen-sahni.github.io/dishdash-food-delivery/areas/connaught-place.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://praveen-sahni.github.io/dishdash-food-delivery/privacy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://praveen-sahni.github.io/dishdash-food-delivery/terms.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://praveen-sahni.github.io/dishdash-food-delivery/refunds.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

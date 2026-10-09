@@ -408,6 +408,15 @@ body.no-scroll { overflow: hidden; }
 .code-chip.dark { background: #ffffff22; }
 .site-footer .code-chip { background: #20201914; color: var(--ink); border-color: var(--line); }
 
+/* Invoice */
+.invoice { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 12px; display: grid; gap: 4px; font-size: 13px; }
+.invoice .total-row { margin-bottom: 4px; }
+@media print {
+  body * { visibility: hidden; }
+  #invoice, #invoice * { visibility: visible; }
+  #invoice { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
 [data-theme="dark"] .site-header { background: #141311f2; border-color: #2c2a25; }
 [data-theme="dark"] .nav { background: #141311; }
 [data-theme="dark"] .search, [data-theme="dark"] .hero-dish, [data-theme="dark"] .float-card { background: #22211d; box-shadow: 0 10px 30px #00000066; }
