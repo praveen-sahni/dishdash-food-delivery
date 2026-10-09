@@ -21,6 +21,7 @@ const CART_KEY = 'dishdash-cart-v1';
 const LOCATION_KEY = 'dishdash-location-v1';
 const PROMO_KEY = 'dishdash-promo-v1';
 const ORDER_KEY = 'dishdash-last-order-v1';
+const FAV_KEY = 'dishdash-favs-v1';
 
 let activeCategory = 'All';
 let query = '';
@@ -28,6 +29,8 @@ let sortBy = 'featured';
 let vegOnly = false;
 let cart = [];
 let promoCode = null;
+let favs = new Set();
+let trackTimers = [];
 let lastFocusedBeforeCart = null;
 let toastTimer = null;
 let searchDebounce = null;
@@ -71,6 +74,9 @@ const checkoutForm = $('#checkout-form');
 const checkoutSummary = $('#checkout-summary');
 const orderConfirm = $('#order-confirm');
 const newsletterForm = $('#newsletter-form');
+const stickyBar = $('#sticky-bar');
+const dishDialog = $('#dish-dialog');
+const dishContent = $('#dish-content');
 
 const format = amount => `₹${Math.round(amount).toLocaleString('en-IN')}`;
 const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -78,7 +84,7 @@ const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '
 function getFilteredDishes() {
   const q = query.trim().toLowerCase();
   let list = dishes.filter(dish => {
-    const matchesCategory = activeCategory === 'All' ? true : activeCategory === 'Popular' ? dish.popular : dish.category === activeCategory;
+    const matchesCategory = activeCategory === 'All' ? true : activeCategory === 'Popular' ? dish.popular : activeCategory === 'Saved' ? favs.has(dish.id) : dish.category === activeCategory;
     if (!matchesCategory) return false;
     if (vegOnly && !dish.veg) return false;
     if (!q) return true;
@@ -149,25 +155,30 @@ function renderDishes() {
   grid.setAttribute('aria-busy', 'false');
 
   if (!list.length) {
-    grid.innerHTML = '<div class="empty-state"><p>No dishes found. Try another craving!</p><button type="button" id="reset-filters" class="text-button">Clear search &amp; filters</button></div>';
+    const hint = activeCategory === 'Saved' ? 'Tap the ♥ on any dish to save it here.' : 'Try another craving!';
+    grid.innerHTML = `<div class="empty-state"><p>No dishes found. ${hint}</p><button type="button" id="reset-filters" class="text-button">Clear search &amp; filters</button></div>`;
     grid.querySelector('#reset-filters').addEventListener('click', resetAll);
     return;
   }
-  grid.innerHTML = list.map(dish => `
+  grid.innerHTML = list.map(dish => {
+    const saved = favs.has(dish.id);
+    return `
     <article class="food-card">
-      <div class="food-image" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
+      <div class="food-image" data-action="view" data-id="${dish.id}" role="button" tabindex="0" aria-label="View ${escapeHtml(dish.name)}" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
         <span class="veg-dot ${dish.veg ? 'veg' : 'nonveg'}" role="img" aria-label="${dish.veg ? 'Veg' : 'Non-veg'}"></span>
         ${dish.popular ? '<span class="badge">Popular</span>' : ''}
         <span class="food-emoji" aria-hidden="true">${escapeHtml(dish.emoji)}</span>
+        <button type="button" class="fav-button" data-action="fav" data-id="${dish.id}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Save'} ${escapeHtml(dish.name)}">${saved ? '♥ Saved' : '♡ Save'}</button>
       </div>
       <div class="card-info">
         <span class="tag">${escapeHtml(dish.cuisine)} · ${escapeHtml(dish.time)}</span>
-        <h3>${escapeHtml(dish.name)}</h3>
+        <h3><button type="button" data-action="view" data-id="${dish.id}">${escapeHtml(dish.name)}</button></h3>
         <p class="desc">${escapeHtml(dish.desc)}</p>
         <div class="meta"><span title="Rated ${escapeHtml(dish.rating)} out of 5"><span class="stars" aria-hidden="true">${stars(dish.rating)}</span> ${escapeHtml(dish.rating)}</span></div>
         <div class="price-row"><strong>${format(dish.price)}</strong>${cardControlHtml(dish)}</div>
       </div>
-    </article>`).join('');
+    </article>`;
+  }).join('');
 }
 
 function resetAll() {
@@ -180,6 +191,54 @@ function resetAll() {
   sortSelect.value = 'featured';
   syncFilterButtons();
   renderDishes();
+}
+
+// --- Favorites ---
+function saveFavs() {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify([...favs])); } catch (e) {}
+}
+
+function toggleFav(id) {
+  const dish = dishes.find(d => d.id === id);
+  if (!dish) return;
+  if (favs.has(id)) { favs.delete(id); showToast(`${dish.name} removed from saved`); }
+  else { favs.add(id); showToast(`♥ ${dish.name} saved`); }
+  saveFavs();
+  renderDishes();
+  if (dishDialog.open) openDish(id, true);
+}
+
+// --- Dish detail ---
+function openDish(id, keepOpen) {
+  const dish = dishes.find(d => d.id === id);
+  if (!dish) return;
+  const saved = favs.has(id);
+  dishContent.innerHTML = `
+    <div class="dish-hero" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
+      <button type="button" class="dish-close" data-close aria-label="Close details">×</button>
+      <span aria-hidden="true">${escapeHtml(dish.emoji)}</span>
+    </div>
+    <div class="dish-body">
+      <span class="tag">${escapeHtml(dish.cuisine)} · ${escapeHtml(dish.time)} · ${dish.veg ? 'Veg' : 'Non-veg'}</span>
+      <h2 id="dish-title">${escapeHtml(dish.name)}</h2>
+      <p class="muted">${escapeHtml(dish.desc)}</p>
+      <div class="meta"><span class="stars" aria-hidden="true">${stars(dish.rating)}</span> ${escapeHtml(dish.rating)} · <strong>${format(dish.price)}</strong></div>
+      <div class="dish-actions">
+        <div class="price-row" style="flex:1;margin:0"><strong>${format(dish.price)}</strong>${cardControlHtml(dish)}</div>
+        <button type="button" class="ghost-button" data-action="fav" data-id="${dish.id}" aria-pressed="${saved}">${saved ? '♥ Saved' : '♡ Save'}</button>
+      </div>
+    </div>`;
+  if (!keepOpen && !dishDialog.open) dishDialog.showModal();
+}
+
+if (dishDialog) {
+  dishDialog.addEventListener('click', e => {
+    if (e.target.closest('[data-close]')) { dishDialog.close(); return; }
+    const rect = dishDialog.getBoundingClientRect();
+    const inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+    if (!inDialog) dishDialog.close();
+  });
+  dishDialog.addEventListener('close', () => renderDishes());
 }
 
 // --- Cart + pricing ---
@@ -206,6 +265,10 @@ function loadState() {
     }
     promoCode = localStorage.getItem(PROMO_KEY);
     if (promoCode && !PROMOS[promoCode]) promoCode = null;
+    try {
+      const fraw = localStorage.getItem(FAV_KEY);
+      if (fraw) favs = new Set(JSON.parse(fraw).map(Number).filter(id => dishes.some(d => d.id === id)));
+    } catch (e) { favs = new Set(); }
     const savedLoc = localStorage.getItem(LOCATION_KEY);
     if (savedLoc) locationLabel.textContent = savedLoc;
     const last = localStorage.getItem(ORDER_KEY);
@@ -237,6 +300,7 @@ function renderCart() {
   cartTotalEl.textContent = format(total);
   checkoutBtn.disabled = cart.length === 0;
   checkoutBtn.textContent = cart.length === 0 ? 'Bag is empty' : `Checkout · ${format(total)}`;
+  updateStickyBar(count, total);
 
   if (subtotal >= FREE_DELIVERY_THRESHOLD) freeDeliveryEl.innerHTML = '<div class="progress done">🎉 You unlocked <b>FREE delivery</b></div>';
   else if (subtotal > 0) freeDeliveryEl.innerHTML = `<div class="progress-info">Add <b>${format(FREE_DELIVERY_THRESHOLD - subtotal)}</b> more for free delivery</div><div class="progress"><i style="width:${Math.round(subtotal / FREE_DELIVERY_THRESHOLD * 100)}%"></i></div>`;
@@ -288,6 +352,41 @@ function changeCartQty(id, delta) {
   updateCardControl(id);
 }
 
+function updateStickyBar(count, total) {
+  if (!stickyBar) return;
+  const cartOpen = cartEl.classList.contains('open');
+  if (count > 0 && !cartOpen && !checkoutDialog.open) {
+    stickyBar.hidden = false;
+    stickyBar.innerHTML = `<span>🛍 ${count} item${count === 1 ? '' : 's'} · ${format(total)}</span><span>View bag →</span>`;
+  } else {
+    stickyBar.hidden = true;
+  }
+}
+
+function startTracking(orderId) {
+  trackTimers.forEach(clearTimeout);
+  trackTimers = [];
+  const steps = [
+    { label: 'Order received', sub: 'Kitchen confirmed your order', delay: 0 },
+    { label: 'Preparing', sub: 'Your food is being cooked fresh', delay: 4000 },
+    { label: 'On the way', sub: 'Rider picked up your order', delay: 9000 },
+    { label: 'Delivered', sub: 'Enjoy your meal!', delay: 15000 }
+  ];
+  const render = active => {
+    const list = orderConfirm.querySelector('.tracker');
+    if (!list) return;
+    list.querySelectorAll('li').forEach((li, i) => li.classList.toggle('done', i <= active));
+    if (active === 1) showToast('👨‍🍳 Your food is being prepared');
+    if (active === 2) showToast('🛵 Rider is on the way');
+    if (active === 3) showToast('✅ Delivered — enjoy!');
+  };
+  steps.forEach((s, i) => {
+    trackTimers.push(setTimeout(() => render(i), s.delay));
+  });
+}
+
+if (stickyBar) stickyBar.addEventListener('click', () => toggleCart(true));
+
 function showToast(message) {
   toastEl.textContent = message;
   toastEl.classList.add('show');
@@ -310,6 +409,8 @@ function toggleCart(open) {
   cartButton.setAttribute('aria-expanded', String(open));
   document.body.classList.toggle('no-scroll', open);
   setBackgroundInert(open);
+  const { count, total } = priceBreakup();
+  updateStickyBar(count, total);
   if (open) { lastFocusedBeforeCart = document.activeElement; closeCartBtn.focus(); }
   else if (lastFocusedBeforeCart && lastFocusedBeforeCart.focus) lastFocusedBeforeCart.focus();
 }
@@ -360,11 +461,12 @@ function placeOrder(data) {
   const order = { id, total: format(total), eta, name: data.name, pay: data.pay, at: new Date().toISOString() };
   try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
   $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${eta}`;
-  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, your food is being prepared. Arriving in <b>${eta}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><p class="muted">A confirmation was “sent” to ${escapeHtml(data.phone)}. Cold food? We refund or redeliver.</p>`;
+  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, your food is being prepared. Arriving in <b>${eta}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol><p class="muted">Cold food? We refund or redeliver.</p>`;
   const ids = cart.map(i => i.id);
   cart = []; promoCode = null; saveCart(); renderCart();
   ids.forEach(updateCardControl);
   showPane(3);
+  startTracking(id);
 }
 
 // --- Events ---
@@ -377,14 +479,30 @@ filtersEl.addEventListener('click', e => {
 sortSelect.addEventListener('change', () => { sortBy = sortSelect.value; renderDishes(); });
 vegCheckbox.addEventListener('change', () => { vegOnly = vegCheckbox.checked; renderDishes(); });
 grid.addEventListener('click', e => {
-  const btn = e.target.closest('button[data-action]');
+  const btn = e.target.closest('button[data-action], [data-action="view"]');
   if (!btn) return;
   const id = Number(btn.dataset.id);
+  if (btn.dataset.action === 'fav') { toggleFav(id); return; }
+  if (btn.dataset.action === 'view' || btn.getAttribute('data-action') === 'view') { openDish(id); return; }
   if (btn.dataset.action === 'add' || btn.dataset.action === 'increase') {
     if (cartQty(id) === 0) addToCart(id);
     else changeCartQty(id, 1);
   }
   else if (btn.dataset.action === 'decrease') changeCartQty(id, -1);
+});
+grid.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-action="view"]')) {
+    e.preventDefault();
+    openDish(Number(e.target.dataset.id));
+  }
+});
+if (dishContent) dishContent.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.action === 'fav') toggleFav(id);
+  else if (btn.dataset.action === 'increase') { if (cartQty(id) === 0) addToCart(id); else changeCartQty(id, 1); openDish(id, true); }
+  else if (btn.dataset.action === 'decrease') { changeCartQty(id, -1); openDish(id, true); }
 });
 cartItemsEl.addEventListener('click', e => {
   const btn = e.target.closest('button[data-action]');
@@ -458,6 +576,12 @@ document.querySelector('.location').addEventListener('click', () => {
   if (typeof locationDialog.showModal === 'function') { locationDialog.showModal(); setTimeout(() => locationInput.focus(), 50); }
 });
 locationCancel.addEventListener('click', () => locationDialog.close());
+[checkoutDialog, locationDialog].forEach(d => {
+  if (!d) return;
+  d.addEventListener('click', e => {
+    if (e.target === d) d.close();
+  });
+});
 locationForm.addEventListener('submit', () => {
   const value = locationInput.value.trim().slice(0, 60);
   if (value) {

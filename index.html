@@ -88,7 +88,7 @@
         </div>
         <div class="menu-toolbar">
           <div id="filters" class="filters" aria-label="Menu categories" role="group">
-            <button type="button" class="active" data-category="All" aria-pressed="true">All</button><button type="button" data-category="Popular" aria-pressed="false">Popular</button><button type="button" data-category="Pizza" aria-pressed="false">Pizza</button><button type="button" data-category="Burger" aria-pressed="false">Burger</button><button type="button" data-category="Asian" aria-pressed="false">Asian</button><button type="button" data-category="Healthy" aria-pressed="false">Healthy</button>
+            <button type="button" class="active" data-category="All" aria-pressed="true">All</button><button type="button" data-category="Popular" aria-pressed="false">Popular</button><button type="button" data-category="Saved" aria-pressed="false">♥ Saved</button><button type="button" data-category="Pizza" aria-pressed="false">Pizza</button><button type="button" data-category="Burger" aria-pressed="false">Burger</button><button type="button" data-category="Asian" aria-pressed="false">Asian</button><button type="button" data-category="Healthy" aria-pressed="false">Healthy</button>
           </div>
           <div class="menu-controls">
             <label class="sort-wrap">Sort
@@ -209,6 +209,11 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <button id="sticky-bar" class="sticky-bar" type="button" aria-haspopup="dialog" hidden></button>
+
+    <dialog id="dish-dialog" class="dish-dialog" aria-labelledby="dish-title">
+      <div id="dish-content"></div>
+    </dialog>
     <script src="script.js"></script>
   </body>
 </html>
