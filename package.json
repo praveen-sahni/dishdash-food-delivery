@@ -1,0 +1,9 @@
+{
+  "name": "dishdash-food-delivery",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DishDash static food delivery site",
+  "scripts": {
+    "test": "node --test tests/pricing.test.js"
+  }
+}

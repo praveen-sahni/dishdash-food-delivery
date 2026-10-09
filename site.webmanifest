@@ -1,1 +1,1 @@
-{"name":"DishDash","short_name":"DishDash","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#202019","icons":[]}
+{"name":"DishDash","short_name":"DishDash","start_url":".","scope":".","display":"standalone","background_color":"#ffffff","theme_color":"#202019","description":"Good food. Good mood. Delivered in 25-30 minutes.","icons":[{"src":"images/icon.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any"}]}

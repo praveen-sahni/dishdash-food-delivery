@@ -42,6 +42,7 @@
         <a href="#home">Home</a><a href="#menu">Menu</a><a href="#how-it-works">How it works</a><a href="#reviews">Reviews</a><a href="#faq">FAQ</a><a href="#about">About</a>
       </nav>
       <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark mode">🌙</button>
         <button class="location" type="button" aria-label="Select delivery address" aria-haspopup="dialog">⌖ <span id="location-label">New Delhi</span></button>
         <button id="cart-button" class="cart-button" type="button" aria-label="Open cart" aria-controls="cart" aria-expanded="false" aria-haspopup="dialog">Bag <span id="cart-count" aria-label="items in bag">0</span></button>
         <button id="menu-button" class="menu-button" type="button" aria-label="Toggle navigation" aria-controls="nav" aria-expanded="false">☰</button>
@@ -55,7 +56,7 @@
           <h1>Good food.<br /><em>Good mood.</em></h1>
           <p class="hero-text">Restaurant-quality meals delivered to your door in as little as 25 minutes. No hidden fees, live tracking, hot or refunded.</p>
           <form id="search-form" class="search" role="search">
-            <span aria-hidden="true">⌖</span><input id="search-input" type="search" placeholder="Try ‘ramen’ or ‘pizza’…" aria-label="Search menu" autocomplete="off" /><button type="submit">Search</button>
+            <span aria-hidden="true">⌖</span><input id="search-input" type="search" placeholder="Try ‘ramen’ or ‘pizza’…" aria-label="Search menu (shortcut: Control or Command K)" autocomplete="off" /><kbd title="Press Control/Command + K to search">⌘K</kbd><button type="submit">Search</button>
           </form>
           <div class="hero-proof">
             <span class="avatars" aria-hidden="true"><i>AS</i><i>RK</i><i>MP</i><i>+</i></span>
@@ -114,14 +115,30 @@
         <div class="steps"><article><span>01</span><h3>Pick your dish</h3><p>Choose from local favorites and cuisine you love. Veg filter, ratings and delivery times upfront.</p></article><article><span>02</span><h3>We get cooking</h3><p>Our kitchen partners prepare it fresh for you. Average prep: 12 minutes.</p></article><article><span>03</span><h3>Enjoy at home</h3><p>Track your order right to your doorstep. Free delivery over ₹499.</p></article></div>
       </section>
 
+      <section id="orders" class="orders-section" aria-labelledby="orders-heading">
+        <p class="eyebrow">TRACK &amp; REORDER</p>
+        <h2 id="orders-heading">Your orders</h2>
+        <div id="orders-list" class="orders-list" aria-live="polite"></div>
+      </section>
+
       <section id="reviews" class="reviews-section" aria-labelledby="reviews-heading">
         <p class="eyebrow">WALL OF LOVE</p>
         <h2 id="reviews-heading">12,000+ five-star evenings</h2>
-        <div class="reviews-grid">
+        <div id="reviews-grid" class="reviews-grid">
           <article><div class="stars" aria-label="5 out of 5 stars">★★★★★</div><p>“Ramen arrived steaming in 24 minutes. Broth was unbelievable — better than dining in.”</p><footer><b>Ananya S.</b><small>Ordered Spicy Ramen · New Delhi</small></footer></article>
           <article><div class="stars" aria-label="5 out of 5 stars">★★★★★</div><p>“Truffle pasta tastes premium and the tracking is honest. My weekly fix now.”</p><footer><b>Rohan K.</b><small>Ordered Truffle Pasta · Gurugram</small></footer></article>
           <article><div class="stars" aria-label="4.5 out of 5 stars">★★★★★</div><p>“Pepperoni pizza was hot, crisp and on time for movie night. Free delivery sealed it.”</p><footer><b>Meera P.</b><small>Ordered Pepperoni Pizza · Noida</small></footer></article>
         </div>
+        <form id="review-form" class="review-form" aria-label="Leave a review">
+          <b>Ordered recently? Leave a review</b>
+          <div class="review-row">
+            <label>Name<input id="review-name" required maxlength="40" placeholder="Your name" autocomplete="name" /></label>
+            <label>Dish<select id="review-dish"></select></label>
+            <label>Rating<select id="review-rating"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option></select></label>
+          </div>
+          <label>Review<textarea id="review-text" required rows="2" maxlength="280" placeholder="What did you love?"></textarea></label>
+          <button type="submit" class="solid-button" style="max-width:220px">Post review</button>
+        </form>
       </section>
 
       <section id="faq" class="faq-section" aria-labelledby="faq-heading">
@@ -143,8 +160,8 @@
       <div class="footer-grid">
         <div><a class="logo" href="#home"><span>dish</span>dash<span class="dot" aria-hidden="true">.</span></a><p>Good food is always a good idea.</p><p class="footer-contact">⏱ 11am–11pm daily<br />✉️ <a href="mailto:hello@dishdash.example">hello@dishdash.example</a><br />☎️ <a href="tel:+911140000000">+91 11 4000 0000</a></p></div>
         <nav aria-label="Explore"><b>Explore</b><a href="#menu">Menu</a><a href="#how-it-works">How it works</a><a href="#reviews">Reviews</a><a href="#faq">FAQ</a></nav>
-        <nav aria-label="Company"><b>Company</b><a href="#about">About us</a><a href="#faq">Delivery areas</a><a href="#faq">Refund policy</a><a href="#faq">Careers</a></nav>
-        <div class="newsletter"><b>Get ₹100 off</b><p>One tasty email a week. No spam.</p><form id="newsletter-form" novalidate><label class="visually-hidden" for="newsletter-email">Email address</label><input id="newsletter-email" type="email" placeholder="you@example.com" autocomplete="email" required /><button type="submit">Join</button></form><small id="newsletter-msg" aria-live="polite"></small></div>
+        <nav aria-label="Company"><b>Company</b><a href="#about">About us</a><a href="areas/andheri.html">Andheri West</a><a href="areas/bandra.html">Bandra</a><a href="areas/connaught-place.html">Connaught Place</a></nav>
+        <div class="newsletter"><b>Get ₹100 off</b><p>One tasty email a week. No spam. Share <button type="button" id="my-code" class="code-chip dark" title="Click to copy your referral code">DD-XXXX</button> — friends get ₹50 off.</p><form id="newsletter-form" data-endpoint="" novalidate><label class="visually-hidden" for="newsletter-email">Email address</label><input id="newsletter-email" type="email" placeholder="you@example.com" autocomplete="email" required /><button type="submit">Join</button></form><small id="newsletter-msg" aria-live="polite"></small></div>
       </div>
       <div class="footer-bottom"><small>© 2026 DishDash. Crafted with flavour.</small><small id="last-order" aria-live="polite"></small></div>
     </footer>
@@ -188,9 +205,16 @@
       <form id="checkout-form" novalidate>
         <fieldset data-pane="1">
           <legend>Delivery details</legend>
+          <label>Saved addresses<select id="addr-select" aria-label="Choose a saved address"></select></label>
           <label>Full name *<input name="name" required autocomplete="name" placeholder="Aarav Sharma" aria-describedby="err-name" /><p class="field-error" id="err-name" hidden></p></label>
           <label>Phone *<input name="phone" required inputmode="tel" pattern="[0-9+ -]{10,15}" placeholder="98765 43210" aria-describedby="err-phone" /><p class="field-error" id="err-phone" hidden></p></label>
           <label>Address *<textarea name="address" required rows="2" placeholder="Flat, street, landmark" aria-describedby="err-address"></textarea><p class="field-error" id="err-address" hidden></p></label>
+          <label class="inline-check"><input type="checkbox" id="addr-save" /> Save this address (max 3)</label>
+          <fieldset class="slot-group"><legend>Delivery slot</legend>
+            <label class="pay-option"><input type="radio" name="slot" value="asap" checked /> ASAP · 25–30 min</label>
+            <label class="pay-option"><input type="radio" name="slot" value="tonight" /> Tonight · 7–8 pm</label>
+            <label class="pay-option"><input type="radio" name="slot" value="tomorrow" /> Tomorrow · 12–1 pm</label>
+          </fieldset>
           <div class="dialog-actions"><button type="button" class="ghost-button" id="checkout-cancel">Back to bag</button><button type="submit" class="solid-button" data-next="2">Continue to payment</button></div>
         </fieldset>
         <fieldset data-pane="2" hidden>
@@ -214,6 +238,6 @@
     <dialog id="dish-dialog" class="dish-dialog" aria-labelledby="dish-title">
       <div id="dish-content"></div>
     </dialog>
-    <script src="script.js"></script>
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>

@@ -1,27 +1,23 @@
-const dishes = [
-  { id: 1, name: 'Truffle Pasta', category: 'Popular', cuisine: 'Italian', desc: 'Creamy truffle sauce, parmesan, basil.', time: '25 min', timeMin: 25, rating: '4.9', price: 349, emoji: '🍝', color: '#f8dfaa', popular: true, veg: true },
-  { id: 2, name: 'Smoky BBQ Burger', category: 'Burger', cuisine: 'American', desc: 'Char-grilled patty, smoked cheddar, pickles.', time: '20 min', timeMin: 20, rating: '4.8', price: 289, emoji: '🍔', color: '#efd0ad', popular: false, veg: false },
-  { id: 3, name: 'Garden Burrito Bowl', category: 'Healthy', cuisine: 'Mexican', desc: 'Brown rice, beans, corn, avocado crema.', time: '25 min', timeMin: 25, rating: '4.7', price: 319, emoji: '🥗', color: '#cfe4bd', popular: false, veg: true },
-  { id: 4, name: 'Spicy Ramen', category: 'Asian', cuisine: 'Japanese', desc: 'Rich chilli-miso broth, noodles, soft egg.', time: '30 min', timeMin: 30, rating: '4.9', price: 369, emoji: '🍜', color: '#f5c8ad', popular: true, veg: false },
-  { id: 5, name: 'Margherita Pizza', category: 'Pizza', cuisine: 'Italian', desc: 'San Marzano tomato, fior di latte, basil.', time: '25 min', timeMin: 25, rating: '4.8', price: 399, emoji: '🍕', color: '#f7d18b', popular: false, veg: true },
-  { id: 6, name: 'Dragon Dumplings', category: 'Asian', cuisine: 'Chinese', desc: 'Pan-seared veg dumplings, chilli oil.', time: '18 min', timeMin: 18, rating: '4.6', price: 249, emoji: '🥟', color: '#f0d4bd', popular: false, veg: true },
-  { id: 7, name: 'Avocado Toast', category: 'Healthy', cuisine: 'Cafe', desc: 'Sourdough, smashed avo, seeds, lime.', time: '15 min', timeMin: 15, rating: '4.7', price: 229, emoji: '🥑', color: '#cfe6a6', popular: false, veg: true },
-  { id: 8, name: 'Pepperoni Pizza', category: 'Pizza', cuisine: 'Italian', desc: 'Double pepperoni, mozzarella, oregano.', time: '28 min', timeMin: 28, rating: '4.9', price: 449, emoji: '🍕', color: '#f0c7a3', popular: true, veg: false },
-  { id: 9, name: 'Paneer Tikka Bowl', category: 'Healthy', cuisine: 'Indian', desc: 'Smoky paneer, millet, mint chutney.', time: '22 min', timeMin: 22, rating: '4.8', price: 299, emoji: '🥘', color: '#e6d3b3', popular: false, veg: true },
-  { id: 10, name: 'Classic Cheeseburger', category: 'Burger', cuisine: 'American', desc: 'Beef patty, cheddar, house sauce.', time: '18 min', timeMin: 18, rating: '4.7', price: 259, emoji: '🍔', color: '#eed9c0', popular: false, veg: false },
-  { id: 11, name: 'Pad Thai Noodles', category: 'Asian', cuisine: 'Thai', desc: 'Tamarind glaze, peanuts, bean sprouts.', time: '24 min', timeMin: 24, rating: '4.7', price: 329, emoji: '🍜', color: '#f3cfae', popular: false, veg: true },
-  { id: 12, name: 'Farmhouse Pizza', category: 'Pizza', cuisine: 'Italian', desc: 'Loaded garden veggies, extra cheese.', time: '26 min', timeMin: 26, rating: '4.6', price: 379, emoji: '🍕', color: '#f6d9a0', popular: false, veg: true }
-];
+import { dishes, FREE_DELIVERY_THRESHOLD } from './data.js';
+import { calcBreakup, formatINR as format, isValidEmail, isValidPhone, normalizePromo, resolvePromo } from './pricing.js';
 
-const PROMOS = { WELCOME10: { pct: 10, cap: 120, label: '10% off' }, FREEDEL: { freeDel: true, label: 'Free delivery' } };
-const FREE_DELIVERY_THRESHOLD = 499;
-const DELIVERY_FEE = 29;
-const TAX_RATE = 0.05;
 const CART_KEY = 'dishdash-cart-v1';
 const LOCATION_KEY = 'dishdash-location-v1';
 const PROMO_KEY = 'dishdash-promo-v1';
 const ORDER_KEY = 'dishdash-last-order-v1';
+const ORDERS_KEY = 'dishdash-orders-v1';
 const FAV_KEY = 'dishdash-favs-v1';
+const THEME_KEY = 'dishdash-theme-v1';
+const ADDR_KEY = 'dishdash-addrs-v1';
+const REVIEWS_KEY = 'dishdash-reviews-v1';
+const REF_KEY = 'dishdash-ref-v1';
+const NL_KEY = 'dishdash-newsletter-v1';
+
+const SLOTS = [
+  { id: 'asap', label: 'ASAP · 25–30 min' },
+  { id: 'tonight', label: 'Tonight · 7–8 pm' },
+  { id: 'tomorrow', label: 'Tomorrow · 12–1 pm' }
+];
 
 let activeCategory = 'All';
 let query = '';
@@ -31,6 +27,7 @@ let cart = [];
 let promoCode = null;
 let favs = new Set();
 let trackTimers = [];
+let skelTimer = null;
 let lastFocusedBeforeCart = null;
 let toastTimer = null;
 let searchDebounce = null;
@@ -77,10 +74,26 @@ const newsletterForm = $('#newsletter-form');
 const stickyBar = $('#sticky-bar');
 const dishDialog = $('#dish-dialog');
 const dishContent = $('#dish-content');
+const ordersList = $('#orders-list');
+const reviewsGrid = $('#reviews-grid');
+const reviewForm = $('#review-form');
 
-const format = amount => `₹${Math.round(amount).toLocaleString('en-IN')}`;
 const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+// --- Theme ---
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  const btn = $('#theme-toggle');
+  if (btn) {
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = theme === 'dark' ? '#121210' : '#202019';
+}
+
+// --- Filtering ---
 function getFilteredDishes() {
   const q = query.trim().toLowerCase();
   let list = dishes.filter(dish => {
@@ -110,8 +123,7 @@ function syncFilterButtons() {
 }
 
 function stars(rating) {
-  const r = parseFloat(rating);
-  const full = Math.round(r);
+  const full = Math.round(parseFloat(rating));
   return '★'.repeat(full) + '☆'.repeat(5 - full);
 }
 
@@ -130,6 +142,10 @@ function cardControlHtml(dish) {
   </div>`;
 }
 
+function dishImg(dish, cls = '') {
+  return `<img class="dish-photo ${cls}" src="${escapeHtml(dish.img)}" alt="${escapeHtml(dish.name)}" loading="lazy" width="640" height="400" onerror="this.remove()" />`;
+}
+
 function updateCardControl(id) {
   const dish = dishes.find(d => d.id === id);
   if (!dish) return;
@@ -137,12 +153,23 @@ function updateCardControl(id) {
   if (!btn) return;
   const row = btn.closest('.price-row');
   if (!row) return;
-  const focusedAction = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.action : null;
+  const focusedAction = document.activeElement?.dataset?.action;
   row.innerHTML = `<strong>${format(dish.price)}</strong>${cardControlHtml(dish)}`;
   if (focusedAction && focusedAction !== 'add') {
-    const next = row.querySelector(`[data-action="${focusedAction}"]`) || row.querySelector('strong');
-    if (next && next.focus) { try { next.focus({ preventScroll: true }); } catch (e) { next.focus(); } }
+    const next = row.querySelector(`[data-action="${focusedAction}"]`);
+    if (next) { try { next.focus({ preventScroll: true }); } catch (e) { next.focus(); } }
   }
+}
+
+function renderSkeleton() {
+  grid.setAttribute('aria-busy', 'true');
+  grid.innerHTML = Array.from({ length: 8 }, () => '<article class="food-card skeleton" aria-hidden="true"><div class="food-image shimmer"></div><div class="card-info"><div class="shimmer-line"></div><div class="shimmer-line short"></div></div></article>').join('');
+}
+
+function withSkeleton(render) {
+  renderSkeleton();
+  clearTimeout(skelTimer);
+  skelTimer = setTimeout(() => { render(); }, 180);
 }
 
 function renderDishes() {
@@ -165,9 +192,9 @@ function renderDishes() {
     return `
     <article class="food-card">
       <div class="food-image" data-action="view" data-id="${dish.id}" role="button" tabindex="0" aria-label="View ${escapeHtml(dish.name)}" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
+        ${dishImg(dish)}
         <span class="veg-dot ${dish.veg ? 'veg' : 'nonveg'}" role="img" aria-label="${dish.veg ? 'Veg' : 'Non-veg'}"></span>
         ${dish.popular ? '<span class="badge">Popular</span>' : ''}
-        <span class="food-emoji" aria-hidden="true">${escapeHtml(dish.emoji)}</span>
         <button type="button" class="fav-button" data-action="fav" data-id="${dish.id}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Save'} ${escapeHtml(dish.name)}">${saved ? '♥ Saved' : '♡ Save'}</button>
       </div>
       <div class="card-info">
@@ -208,15 +235,22 @@ function toggleFav(id) {
   if (dishDialog.open) openDish(id, true);
 }
 
+function pairsFor(dish) {
+  const same = dishes.filter(d => d.id !== dish.id && d.cuisine === dish.cuisine);
+  const rest = dishes.filter(d => d.id !== dish.id && d.cuisine !== dish.cuisine && d.popular);
+  return [...same, ...rest].slice(0, 2);
+}
+
 // --- Dish detail ---
 function openDish(id, keepOpen) {
   const dish = dishes.find(d => d.id === id);
   if (!dish) return;
   const saved = favs.has(id);
+  const pairs = pairsFor(dish);
   dishContent.innerHTML = `
     <div class="dish-hero" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
       <button type="button" class="dish-close" data-close aria-label="Close details">×</button>
-      <span aria-hidden="true">${escapeHtml(dish.emoji)}</span>
+      ${dishImg(dish)}
     </div>
     <div class="dish-body">
       <span class="tag">${escapeHtml(dish.cuisine)} · ${escapeHtml(dish.time)} · ${dish.veg ? 'Veg' : 'Non-veg'}</span>
@@ -227,18 +261,9 @@ function openDish(id, keepOpen) {
         <div class="price-row" style="flex:1;margin:0"><strong>${format(dish.price)}</strong>${cardControlHtml(dish)}</div>
         <button type="button" class="ghost-button" data-action="fav" data-id="${dish.id}" aria-pressed="${saved}">${saved ? '♥ Saved' : '♡ Save'}</button>
       </div>
+      <div class="pairs"><b>Pairs well with</b><div class="pairs-row">${pairs.map(p => `<button type="button" class="pair-chip" data-action="view" data-id="${p.id}">${escapeHtml(p.emoji)} ${escapeHtml(p.name)} · ${format(p.price)}</button>`).join('')}</div></div>
     </div>`;
   if (!keepOpen && !dishDialog.open) dishDialog.showModal();
-}
-
-if (dishDialog) {
-  dishDialog.addEventListener('click', e => {
-    if (e.target.closest('[data-close]')) { dishDialog.close(); return; }
-    const rect = dishDialog.getBoundingClientRect();
-    const inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
-    if (!inDialog) dishDialog.close();
-  });
-  dishDialog.addEventListener('close', () => renderDishes());
 }
 
 // --- Cart + pricing ---
@@ -264,7 +289,7 @@ function loadState() {
       }
     }
     promoCode = localStorage.getItem(PROMO_KEY);
-    if (promoCode && !PROMOS[promoCode]) promoCode = null;
+    if (promoCode && !resolvePromo(promoCode)) promoCode = null;
     try {
       const fraw = localStorage.getItem(FAV_KEY);
       if (fraw) favs = new Set(JSON.parse(fraw).map(Number).filter(id => dishes.some(d => d.id === id)));
@@ -276,25 +301,27 @@ function loadState() {
       const o = JSON.parse(last);
       $('#last-order').textContent = `Last order ${o.id} · ${o.total} · ${o.eta}`;
     }
+    const theme = localStorage.getItem(THEME_KEY);
+    applyTheme(theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    loadAddresses();
+    renderOrders();
+    renderSavedReviews();
+    ensureReferralCode();
   } catch (e) { cart = []; }
 }
 
 function priceBreakup() {
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const promo = promoCode ? PROMOS[promoCode] : null;
-  const discount = promo && promo.pct ? Math.min(Math.round(subtotal * promo.pct / 100), promo.cap) : 0;
-  const afterDiscount = subtotal - discount;
-  const delivery = subtotal === 0 ? 0 : (promo && promo.freeDel) || afterDiscount >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const tax = Math.round(afterDiscount * TAX_RATE);
-  return { subtotal, discount, delivery, tax, total: afterDiscount + delivery + tax, count: cart.reduce((t, i) => t + i.qty, 0) };
+  const r = calcBreakup(subtotal, promoCode);
+  return { ...r, count: cart.reduce((t, i) => t + i.qty, 0) };
 }
 
 function renderCart() {
-  const { subtotal, discount, delivery, tax, total, count } = priceBreakup();
+  const { subtotal, discount, delivery, tax, total, count, promo } = priceBreakup();
   cartCountEl.textContent = count;
   cartSubtotalEl.textContent = format(subtotal);
   cartDiscountRow.classList.toggle('hidden', !discount);
-  cartDiscountEl.textContent = `−${format(discount)}${promoCode ? ` (${promoCode})` : ''}`;
+  cartDiscountEl.textContent = `−${format(discount)}${promo ? ` (${promo.code})` : ''}`;
   cartDeliveryEl.textContent = subtotal > 0 && delivery === 0 ? 'FREE' : format(delivery);
   cartTaxEl.textContent = format(tax);
   cartTotalEl.textContent = format(total);
@@ -352,6 +379,20 @@ function changeCartQty(id, delta) {
   updateCardControl(id);
 }
 
+function reorderItems(items) {
+  items.forEach(({ id, qty }) => {
+    const dish = dishes.find(d => d.id === id);
+    if (!dish) return;
+    const existing = cart.find(i => i.id === id);
+    if (existing) existing.qty = Math.min(99, existing.qty + qty);
+    else cart.push({ ...dish, qty: Math.min(99, qty) });
+  });
+  saveCart(); renderCart();
+  items.forEach(({ id }) => updateCardControl(id));
+  toggleCart(true);
+  showToast('Items added back to your bag');
+}
+
 function updateStickyBar(count, total) {
   if (!stickyBar) return;
   const cartOpen = cartEl.classList.contains('open');
@@ -363,26 +404,49 @@ function updateStickyBar(count, total) {
   }
 }
 
+// --- Orders history ---
+function getOrders() {
+  try { return JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function saveOrders(orders) {
+  try { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders.slice(0, 10))); } catch (e) {}
+}
+
+function renderOrders() {
+  if (!ordersList) return;
+  const orders = getOrders();
+  if (!orders.length) {
+    ordersList.innerHTML = '<p class="muted">No orders yet — your history will appear here.</p>';
+    return;
+  }
+  ordersList.innerHTML = orders.map(o => {
+    const canCancel = o.status === 'active' && Date.now() - new Date(o.at).getTime() < 120000;
+    const items = o.items.map(i => `${escapeHtml(i.name)} × ${i.qty}`).join(', ');
+    return `<article class="order-card" data-status="${o.status}">
+      <div><b>${escapeHtml(o.id)}</b> <span class="pill">${o.status}</span><br><small>${escapeHtml(items)}</small><br><small>${escapeHtml(o.slotLabel || o.eta)} · ${escapeHtml(o.total)}</small></div>
+      <div class="order-actions"><button type="button" data-reorder="${escapeHtml(o.id)}">Reorder</button>${canCancel ? `<button type="button" data-cancel="${escapeHtml(o.id)}">Cancel</button>` : ''}</div>
+    </article>`;
+  }).join('');
+}
+
 function startTracking(orderId) {
   trackTimers.forEach(clearTimeout);
   trackTimers = [];
-  const steps = [
-    { label: 'Order received', sub: 'Kitchen confirmed your order', delay: 0 },
-    { label: 'Preparing', sub: 'Your food is being cooked fresh', delay: 4000 },
-    { label: 'On the way', sub: 'Rider picked up your order', delay: 9000 },
-    { label: 'Delivered', sub: 'Enjoy your meal!', delay: 15000 }
-  ];
+  const steps = [0, 4000, 9000, 15000];
   const render = active => {
     const list = orderConfirm.querySelector('.tracker');
-    if (!list) return;
-    list.querySelectorAll('li').forEach((li, i) => li.classList.toggle('done', i <= active));
+    if (list) list.querySelectorAll('li').forEach((li, i) => li.classList.toggle('done', i <= active));
     if (active === 1) showToast('👨‍🍳 Your food is being prepared');
     if (active === 2) showToast('🛵 Rider is on the way');
-    if (active === 3) showToast('✅ Delivered — enjoy!');
+    if (active === 3) {
+      showToast('✅ Delivered — enjoy!');
+      const orders = getOrders().map(o => o.id === orderId ? { ...o, status: 'delivered' } : o);
+      saveOrders(orders);
+      renderOrders();
+    }
   };
-  steps.forEach((s, i) => {
-    trackTimers.push(setTimeout(() => render(i), s.delay));
-  });
+  steps.forEach((delay, i) => trackTimers.push(setTimeout(() => render(i), delay)));
 }
 
 if (stickyBar) stickyBar.addEventListener('click', () => toggleCart(true));
@@ -412,7 +476,7 @@ function toggleCart(open) {
   const { count, total } = priceBreakup();
   updateStickyBar(count, total);
   if (open) { lastFocusedBeforeCart = document.activeElement; closeCartBtn.focus(); }
-  else if (lastFocusedBeforeCart && lastFocusedBeforeCart.focus) lastFocusedBeforeCart.focus();
+  else if (lastFocusedBeforeCart?.focus) lastFocusedBeforeCart.focus();
 }
 
 function toggleNav(force) {
@@ -421,11 +485,28 @@ function toggleNav(force) {
   menuButton.setAttribute('aria-expanded', String(willOpen));
 }
 
+// --- Address book ---
+function getAddresses() {
+  try { return JSON.parse(localStorage.getItem(ADDR_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function loadAddresses() {
+  const sel = $('#addr-select');
+  if (!sel) return;
+  const addrs = getAddresses();
+  sel.innerHTML = '<option value="">Use a new address…</option>' + addrs.map((a, i) => `<option value="${i}">${escapeHtml(a.name)} — ${escapeHtml(a.address.slice(0, 32))}</option>`).join('');
+}
+
+function slotLabel(id) {
+  return (SLOTS.find(s => s.id === id) || SLOTS[0]).label;
+}
+
 // --- Checkout flow ---
 function openCheckout() {
   if (!cart.length) return showToast('Add a dish before checking out');
   const { subtotal, discount, delivery, tax, total, count } = priceBreakup();
   checkoutSummary.innerHTML = `${count} item${count === 1 ? '' : 's'} · ${format(subtotal)}${discount ? ` − ${format(discount)}` : ''} + ${delivery === 0 ? 'FREE delivery' : format(delivery)} + ${format(tax)} tax = <b>${format(total)}</b>`;
+  loadAddresses();
   showPane(1);
   toggleCart(false);
   checkoutDialog.showModal();
@@ -457,16 +538,53 @@ function setFieldError(input, msgId, message) {
 function placeOrder(data) {
   const { total } = priceBreakup();
   const id = 'DD-' + Math.floor(100000 + Math.random() * 900000);
-  const eta = '25–30 min';
-  const order = { id, total: format(total), eta, name: data.name, pay: data.pay, at: new Date().toISOString() };
-  try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
-  $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${eta}`;
-  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, your food is being prepared. Arriving in <b>${eta}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol><p class="muted">Cold food? We refund or redeliver.</p>`;
+  const slot = slotLabel(data.slot);
+  const items = cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price }));
+  const order = { id, items, subtotal: format(cart.reduce((s, i) => s + i.price * i.qty, 0)), total: format(total), eta: data.slot === 'asap' ? '25–30 min' : slot, slot, slotLabel: slot, name: data.name, phone: data.phone, address: data.address, pay: data.pay, at: new Date().toISOString(), status: 'active' };
+  try {
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+    const orders = [order, ...getOrders()];
+    saveOrders(orders);
+  } catch (e) {}
+  if (data.saveAddr) {
+    const addrs = getAddresses();
+    if (!addrs.some(a => a.address === data.address) && addrs.length < 3) {
+      addrs.push({ name: data.name, phone: data.phone, address: data.address });
+      try { localStorage.setItem(ADDR_KEY, JSON.stringify(addrs)); } catch (e) {}
+    }
+  }
+  $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${order.eta}`;
+  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, arriving <b>${escapeHtml(order.eta)}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><p class="muted">Slot: ${escapeHtml(slot)} · <button type="button" class="link-button" data-reorder-latest>Reorder these items</button></p><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol>`;
   const ids = cart.map(i => i.id);
-  cart = []; promoCode = null; saveCart(); renderCart();
+  cart = []; promoCode = null; saveCart(); renderCart(); renderOrders();
   ids.forEach(updateCardControl);
   showPane(3);
   startTracking(id);
+}
+
+// --- Reviews (user-submitted) ---
+function renderSavedReviews() {
+  if (!reviewsGrid) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+    saved.forEach(r => {
+      const el = document.createElement('article');
+      el.innerHTML = `<div class="stars" aria-label="${r.rating} out of 5 stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p>“${escapeHtml(r.text)}”</p><footer><b>${escapeHtml(r.name)}</b><small>Ordered ${escapeHtml(r.dish)}</small></footer>`;
+      reviewsGrid.prepend(el);
+    });
+  } catch (e) {}
+}
+
+// --- Referral ---
+function ensureReferralCode() {
+  let code = null;
+  try { code = localStorage.getItem(REF_KEY); } catch (e) {}
+  if (!code) {
+    code = 'DD-' + Array.from({ length: 4 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 31)]).join('');
+    try { localStorage.setItem(REF_KEY, code); } catch (e) {}
+  }
+  const el = $('#my-code');
+  if (el) el.textContent = code;
 }
 
 // --- Events ---
@@ -474,10 +592,11 @@ filtersEl.addEventListener('click', e => {
   const btn = e.target.closest('button');
   if (!btn) return;
   activeCategory = btn.dataset.category;
-  syncFilterButtons(); renderDishes();
+  syncFilterButtons();
+  withSkeleton(renderDishes);
 });
-sortSelect.addEventListener('change', () => { sortBy = sortSelect.value; renderDishes(); });
-vegCheckbox.addEventListener('change', () => { vegOnly = vegCheckbox.checked; renderDishes(); });
+sortSelect.addEventListener('change', () => { sortBy = sortSelect.value; withSkeleton(renderDishes); });
+vegCheckbox.addEventListener('change', () => { vegOnly = vegCheckbox.checked; withSkeleton(renderDishes); });
 grid.addEventListener('click', e => {
   const btn = e.target.closest('button[data-action], [data-action="view"]');
   if (!btn) return;
@@ -497,13 +616,24 @@ grid.addEventListener('keydown', e => {
   }
 });
 if (dishContent) dishContent.addEventListener('click', e => {
+  if (e.target.closest('[data-close]')) { dishDialog.close(); return; }
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
   const id = Number(btn.dataset.id);
   if (btn.dataset.action === 'fav') toggleFav(id);
+  else if (btn.dataset.action === 'view') openDish(id, true);
   else if (btn.dataset.action === 'increase') { if (cartQty(id) === 0) addToCart(id); else changeCartQty(id, 1); openDish(id, true); }
   else if (btn.dataset.action === 'decrease') { changeCartQty(id, -1); openDish(id, true); }
 });
+if (dishDialog) {
+  dishDialog.addEventListener('click', e => {
+    if (e.target.closest('[data-close]')) { dishDialog.close(); return; }
+    const rect = dishDialog.getBoundingClientRect();
+    const inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+    if (!inDialog) dishDialog.close();
+  });
+  dishDialog.addEventListener('close', () => renderDishes());
+}
 cartItemsEl.addEventListener('click', e => {
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
@@ -522,10 +652,16 @@ clearCartBtn.addEventListener('click', () => {
 });
 promoForm.addEventListener('submit', e => {
   e.preventDefault();
-  const code = promoInput.value.trim().toUpperCase();
+  const code = normalizePromo(promoInput.value);
   if (!code) return;
-  if (PROMOS[code]) { promoCode = code; saveCart(); renderCart(); promoMsg.classList.remove('error'); promoMsg.textContent = `✓ ${code} applied: ${PROMOS[code].label}.`; showToast(`Promo ${code} applied`); }
-  else { promoMsg.classList.add('error'); promoMsg.textContent = 'That code is not valid. Try WELCOME10.'; promoInput.focus(); promoInput.select(); }
+  const resolved = resolvePromo(code);
+  if (resolved) {
+    promoCode = resolved.code; saveCart(); renderCart();
+    promoMsg.classList.remove('error');
+    promoMsg.textContent = `✓ ${resolved.code} applied: ${resolved.label}.`;
+    showToast(`Promo ${resolved.code} applied`);
+  }
+  else { promoMsg.classList.add('error'); promoMsg.textContent = 'That code is not valid. Try WELCOME10 or a DD-XXXX referral.'; promoInput.focus(); promoInput.select(); }
 });
 $('#promo-remove').addEventListener('click', () => { promoCode = null; promoInput.value = ''; promoMsg.textContent = ''; saveCart(); renderCart(); });
 cartButton.addEventListener('click', () => toggleCart(true));
@@ -533,10 +669,20 @@ closeCartBtn.addEventListener('click', () => toggleCart(false));
 overlayEl.addEventListener('click', () => toggleCart(false));
 checkoutBtn.addEventListener('click', openCheckout);
 $('#checkout-cancel').addEventListener('click', () => { checkoutDialog.close(); toggleCart(true); });
+const addrSelect = $('#addr-select');
+if (addrSelect) addrSelect.addEventListener('change', () => {
+  const addrs = getAddresses();
+  const a = addrs[Number(addrSelect.value)];
+  if (a) {
+    checkoutForm.name.value = a.name;
+    checkoutForm.phone.value = a.phone;
+    checkoutForm.address.value = a.address;
+  }
+});
 checkoutForm.addEventListener('submit', e => {
   e.preventDefault();
   const btn = e.submitter;
-  const next = btn && btn.dataset ? btn.dataset.next : null;
+  const next = btn?.dataset?.next;
   if (next === 'close') { checkoutDialog.close(); $('#menu').scrollIntoView({ behavior: 'smooth' }); return; }
   if (next === '2') {
     const name = checkoutForm.name.value.trim();
@@ -546,7 +692,7 @@ checkoutForm.addEventListener('submit', e => {
     if (!name) { setFieldError(checkoutForm.name, 'err-name', 'Please enter your name.'); firstInvalid = firstInvalid || checkoutForm.name; }
     else setFieldError(checkoutForm.name, 'err-name', '');
     if (!phone) { setFieldError(checkoutForm.phone, 'err-phone', 'Please enter your phone number.'); firstInvalid = firstInvalid || checkoutForm.phone; }
-    else if (!/^[0-9+ \-]{10,15}$/.test(phone)) { setFieldError(checkoutForm.phone, 'err-phone', 'Enter a valid 10-digit phone number.'); firstInvalid = firstInvalid || checkoutForm.phone; }
+    else if (!isValidPhone(phone)) { setFieldError(checkoutForm.phone, 'err-phone', 'Enter a valid 10-digit phone number.'); firstInvalid = firstInvalid || checkoutForm.phone; }
     else setFieldError(checkoutForm.phone, 'err-phone', '');
     if (!address) { setFieldError(checkoutForm.address, 'err-address', 'Please enter your delivery address.'); firstInvalid = firstInvalid || checkoutForm.address; }
     else setFieldError(checkoutForm.address, 'err-address', '');
@@ -554,23 +700,63 @@ checkoutForm.addEventListener('submit', e => {
     showPane(2); return;
   }
   if (next === '3') {
-    placeOrder({ name: checkoutForm.name.value.trim(), phone: checkoutForm.phone.value.trim(), pay: (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || 'UPI' });
+    placeOrder({
+      name: checkoutForm.name.value.trim(),
+      phone: checkoutForm.phone.value.trim(),
+      address: checkoutForm.address.value.trim(),
+      slot: (checkoutForm.querySelector('input[name="slot"]:checked') || {}).value || 'asap',
+      saveAddr: checkoutForm.querySelector('#addr-save')?.checked,
+      pay: (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || 'UPI'
+    });
     return;
   }
   if (next === '1') { showPane(1); return; }
 });
+orderConfirm.addEventListener('click', e => {
+  if (e.target.closest('[data-reorder-latest]')) {
+    const orders = getOrders();
+    if (orders[0]) { checkoutDialog.close(); reorderItems(orders[0].items); }
+  }
+});
+if (ordersList) ordersList.addEventListener('click', e => {
+  const reorder = e.target.closest('[data-reorder]');
+  const cancel = e.target.closest('[data-cancel]');
+  if (reorder) {
+    const o = getOrders().find(x => x.id === reorder.dataset.reorder);
+    if (o) reorderItems(o.items);
+  }
+  if (cancel) {
+    const id = cancel.dataset.cancel;
+    saveOrders(getOrders().map(o => o.id === id ? { ...o, status: 'cancelled' } : o));
+    renderOrders();
+    showToast(`Order ${id} cancelled`);
+  }
+});
 searchForm.addEventListener('submit', e => {
   e.preventDefault();
-  query = searchInput.value; grid.setAttribute('aria-busy', 'true'); renderDishes();
+  query = searchInput.value; renderSkeleton();
+  clearTimeout(skelTimer);
+  skelTimer = setTimeout(() => renderDishes(), 180);
   $('#menu').scrollIntoView({ behavior: 'smooth' });
 });
 searchInput.addEventListener('input', () => {
   clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(() => { query = searchInput.value; grid.setAttribute('aria-busy', 'true'); renderDishes(); }, 200);
+  searchDebounce = setTimeout(() => { query = searchInput.value; withSkeleton(renderDishes); }, 200);
+});
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    $('#menu').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => searchInput.focus(), 300);
+  }
 });
 $('#view-all').addEventListener('click', resetAll);
 menuButton.addEventListener('click', () => toggleNav());
 navEl.querySelectorAll('a').forEach(link => link.addEventListener('click', () => toggleNav(false)));
+const themeToggle = $('#theme-toggle');
+if (themeToggle) themeToggle.addEventListener('click', () => {
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+});
 document.querySelector('.location').addEventListener('click', () => {
   locationInput.value = locationLabel.textContent.trim() === 'New Delhi' ? '' : locationLabel.textContent.trim();
   if (typeof locationDialog.showModal === 'function') { locationDialog.showModal(); setTimeout(() => locationInput.focus(), 50); }
@@ -578,9 +764,7 @@ document.querySelector('.location').addEventListener('click', () => {
 locationCancel.addEventListener('click', () => locationDialog.close());
 [checkoutDialog, locationDialog].forEach(d => {
   if (!d) return;
-  d.addEventListener('click', e => {
-    if (e.target === d) d.close();
-  });
+  d.addEventListener('click', e => { if (e.target === d) d.close(); });
 });
 locationForm.addEventListener('submit', () => {
   const value = locationInput.value.trim().slice(0, 60);
@@ -597,11 +781,51 @@ document.querySelectorAll('.code-chip').forEach(chip => chip.addEventListener('c
   catch (e) { showToast(`Use code ${code} in your bag`); }
   toggleCart(true);
 }));
-newsletterForm.addEventListener('submit', e => {
+const myCodeBtn = $('#my-code');
+if (myCodeBtn) myCodeBtn.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(myCodeBtn.textContent); showToast(`Referral ${myCodeBtn.textContent} copied — friends get ₹50 off`); }
+  catch (e) { showToast(`Share code ${myCodeBtn.textContent}`); }
+});
+if (reviewForm) {
+  const dishSel = $('#review-dish');
+  dishSel.innerHTML = dishes.map(d => `<option>${escapeHtml(d.name)}</option>`).join('');
+  reviewForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('#review-name').value.trim();
+    const text = $('#review-text').value.trim();
+    const rating = Number($('#review-rating').value) || 5;
+    if (!name || !text) { showToast('Please add your name and review'); return; }
+    const review = { name: name.slice(0, 40), dish: dishSel.value, rating: Math.min(5, Math.max(1, rating)), text: text.slice(0, 280) };
+    try {
+      const saved = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+      saved.unshift(review);
+      localStorage.setItem(REVIEWS_KEY, JSON.stringify(saved.slice(0, 12)));
+    } catch (e) {}
+    const el = document.createElement('article');
+    el.innerHTML = `<div class="stars" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div><p>“${escapeHtml(review.text)}”</p><footer><b>${escapeHtml(review.name)}</b><small>Ordered ${escapeHtml(review.dish)}</small></footer>`;
+    reviewsGrid.prepend(el);
+    reviewForm.reset();
+    showToast('Thanks! Your review is live');
+  });
+}
+newsletterForm.addEventListener('submit', async e => {
   e.preventDefault();
   const email = $('#newsletter-email').value.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $('#newsletter-msg').textContent = 'Enter a valid email address.'; return; }
-  $('#newsletter-msg').textContent = 'You are in! Code WELCOME10 works on your first order.';
+  if (!isValidEmail(email)) { $('#newsletter-msg').textContent = 'Enter a valid email address.'; return; }
+  const endpoint = newsletterForm.dataset.endpoint;
+  if (endpoint) {
+    try {
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      if (!res.ok) throw new Error('bad status');
+      $('#newsletter-msg').textContent = 'Subscribed! Check your inbox.';
+    } catch (err) {
+      try { localStorage.setItem(NL_KEY, email); } catch (e) {}
+      $('#newsletter-msg').textContent = 'Saved! We will email you (offline mode). Code WELCOME10 works now.';
+    }
+  } else {
+    try { localStorage.setItem(NL_KEY, email); } catch (e) {}
+    $('#newsletter-msg').textContent = 'You are in! Code WELCOME10 works on your first order.';
+  }
   showToast('Subscribed — check your inbox for ₹100 off');
   newsletterForm.reset();
 });
@@ -618,3 +842,7 @@ loadState();
 syncFilterButtons();
 renderDishes();
 renderCart();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
