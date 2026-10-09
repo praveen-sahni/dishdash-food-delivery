@@ -1,72 +1,98 @@
 const dishes = [
-  { id: 1, name: 'Truffle Pasta', category: 'Popular', cuisine: 'Italian', time: '25 min', rating: '4.9', price: 349, emoji: '🍝', color: '#f8dfaa', popular: true },
-  { id: 2, name: 'Smoky BBQ Burger', category: 'Burger', cuisine: 'American', time: '20 min', rating: '4.8', price: 289, emoji: '🍔', color: '#efd0ad', popular: false },
-  { id: 3, name: 'Garden Burrito Bowl', category: 'Healthy', cuisine: 'Mexican', time: '25 min', rating: '4.7', price: 319, emoji: '🥗', color: '#cfe4bd', popular: false },
-  { id: 4, name: 'Spicy Ramen', category: 'Asian', cuisine: 'Japanese', time: '30 min', rating: '4.9', price: 369, emoji: '🍜', color: '#f5c8ad', popular: true },
-  { id: 5, name: 'Margherita Pizza', category: 'Pizza', cuisine: 'Italian', time: '25 min', rating: '4.8', price: 399, emoji: '🍕', color: '#f7d18b', popular: false },
-  { id: 6, name: 'Dragon Dumplings', category: 'Asian', cuisine: 'Chinese', time: '18 min', rating: '4.6', price: 249, emoji: '🥟', color: '#f0d4bd', popular: false },
-  { id: 7, name: 'Avocado Toast', category: 'Healthy', cuisine: 'Cafe', time: '15 min', rating: '4.7', price: 229, emoji: '🥑', color: '#cfe6a6', popular: false },
-  { id: 8, name: 'Pepperoni Pizza', category: 'Pizza', cuisine: 'Italian', time: '28 min', rating: '4.9', price: 449, emoji: '🍕', color: '#f0c7a3', popular: true }
+  { id: 1, name: 'Truffle Pasta', category: 'Popular', cuisine: 'Italian', desc: 'Creamy truffle sauce, parmesan, basil.', time: '25 min', timeMin: 25, rating: '4.9', price: 349, emoji: '🍝', color: '#f8dfaa', popular: true, veg: true },
+  { id: 2, name: 'Smoky BBQ Burger', category: 'Burger', cuisine: 'American', desc: 'Char-grilled patty, smoked cheddar, pickles.', time: '20 min', timeMin: 20, rating: '4.8', price: 289, emoji: '🍔', color: '#efd0ad', popular: false, veg: false },
+  { id: 3, name: 'Garden Burrito Bowl', category: 'Healthy', cuisine: 'Mexican', desc: 'Brown rice, beans, corn, avocado crema.', time: '25 min', timeMin: 25, rating: '4.7', price: 319, emoji: '🥗', color: '#cfe4bd', popular: false, veg: true },
+  { id: 4, name: 'Spicy Ramen', category: 'Asian', cuisine: 'Japanese', desc: 'Rich chilli-miso broth, noodles, soft egg.', time: '30 min', timeMin: 30, rating: '4.9', price: 369, emoji: '🍜', color: '#f5c8ad', popular: true, veg: false },
+  { id: 5, name: 'Margherita Pizza', category: 'Pizza', cuisine: 'Italian', desc: 'San Marzano tomato, fior di latte, basil.', time: '25 min', timeMin: 25, rating: '4.8', price: 399, emoji: '🍕', color: '#f7d18b', popular: false, veg: true },
+  { id: 6, name: 'Dragon Dumplings', category: 'Asian', cuisine: 'Chinese', desc: 'Pan-seared veg dumplings, chilli oil.', time: '18 min', timeMin: 18, rating: '4.6', price: 249, emoji: '🥟', color: '#f0d4bd', popular: false, veg: true },
+  { id: 7, name: 'Avocado Toast', category: 'Healthy', cuisine: 'Cafe', desc: 'Sourdough, smashed avo, seeds, lime.', time: '15 min', timeMin: 15, rating: '4.7', price: 229, emoji: '🥑', color: '#cfe6a6', popular: false, veg: true },
+  { id: 8, name: 'Pepperoni Pizza', category: 'Pizza', cuisine: 'Italian', desc: 'Double pepperoni, mozzarella, oregano.', time: '28 min', timeMin: 28, rating: '4.9', price: 449, emoji: '🍕', color: '#f0c7a3', popular: true, veg: false },
+  { id: 9, name: 'Paneer Tikka Bowl', category: 'Healthy', cuisine: 'Indian', desc: 'Smoky paneer, millet, mint chutney.', time: '22 min', timeMin: 22, rating: '4.8', price: 299, emoji: '🥘', color: '#e6d3b3', popular: false, veg: true },
+  { id: 10, name: 'Classic Cheeseburger', category: 'Burger', cuisine: 'American', desc: 'Beef patty, cheddar, house sauce.', time: '18 min', timeMin: 18, rating: '4.7', price: 259, emoji: '🍔', color: '#eed9c0', popular: false, veg: false },
+  { id: 11, name: 'Pad Thai Noodles', category: 'Asian', cuisine: 'Thai', desc: 'Tamarind glaze, peanuts, bean sprouts.', time: '24 min', timeMin: 24, rating: '4.7', price: 329, emoji: '🍜', color: '#f3cfae', popular: false, veg: true },
+  { id: 12, name: 'Farmhouse Pizza', category: 'Pizza', cuisine: 'Italian', desc: 'Loaded garden veggies, extra cheese.', time: '26 min', timeMin: 26, rating: '4.6', price: 379, emoji: '🍕', color: '#f6d9a0', popular: false, veg: true }
 ];
 
+const PROMOS = { WELCOME10: { pct: 10, cap: 120, label: '10% off' }, FREEDEL: { freeDel: true, label: 'Free delivery' } };
 const FREE_DELIVERY_THRESHOLD = 499;
 const DELIVERY_FEE = 29;
+const TAX_RATE = 0.05;
 const CART_KEY = 'dishdash-cart-v1';
 const LOCATION_KEY = 'dishdash-location-v1';
+const PROMO_KEY = 'dishdash-promo-v1';
+const ORDER_KEY = 'dishdash-last-order-v1';
 
 let activeCategory = 'All';
 let query = '';
+let sortBy = 'featured';
+let vegOnly = false;
 let cart = [];
+let promoCode = null;
 let lastFocusedBeforeCart = null;
 let toastTimer = null;
+let searchDebounce = null;
 
-// Cached DOM refs
-const grid = document.querySelector('#food-grid');
-const resultsCount = document.querySelector('#results-count');
-const filtersEl = document.querySelector('#filters');
-const cartEl = document.querySelector('#cart');
-const overlayEl = document.querySelector('#overlay');
-const cartItemsEl = document.querySelector('#cart-items');
-const cartCountEl = document.querySelector('#cart-count');
-const cartSubtotalEl = document.querySelector('#cart-subtotal');
-const cartDeliveryEl = document.querySelector('#cart-delivery');
-const cartTotalEl = document.querySelector('#cart-total');
-const checkoutBtn = document.querySelector('#checkout');
-const cartButton = document.querySelector('#cart-button');
-const closeCartBtn = document.querySelector('#close-cart');
-const navEl = document.querySelector('#nav');
-const menuButton = document.querySelector('#menu-button');
-const searchForm = document.querySelector('#search-form');
-const searchInput = document.querySelector('#search-input');
-const toastEl = document.querySelector('#toast');
-const locationLabel = document.querySelector('#location-label');
-const locationDialog = document.querySelector('#location-dialog');
-const locationForm = document.querySelector('#location-form');
-const locationInput = document.querySelector('#location-input');
-const locationCancel = document.querySelector('#location-cancel');
+const $ = sel => document.querySelector(sel);
+const grid = $('#food-grid');
+const resultsCount = $('#results-count');
+const filtersEl = $('#filters');
+const sortSelect = $('#sort-select');
+const vegCheckbox = $('#veg-only');
+const cartEl = $('#cart');
+const overlayEl = $('#overlay');
+const cartItemsEl = $('#cart-items');
+const cartCountEl = $('#cart-count');
+const cartSubtotalEl = $('#cart-subtotal');
+const cartDiscountRow = $('#discount-row');
+const cartDiscountEl = $('#cart-discount');
+const cartDeliveryEl = $('#cart-delivery');
+const cartTaxEl = $('#cart-tax');
+const cartTotalEl = $('#cart-total');
+const checkoutBtn = $('#checkout');
+const clearCartBtn = $('#clear-cart');
+const cartButton = $('#cart-button');
+const closeCartBtn = $('#close-cart');
+const freeDeliveryEl = $('#free-delivery');
+const promoForm = $('#promo-form');
+const promoInput = $('#promo-input');
+const promoMsg = $('#promo-msg');
+const navEl = $('#nav');
+const menuButton = $('#menu-button');
+const searchForm = $('#search-form');
+const searchInput = $('#search-input');
+const toastEl = $('#toast');
+const locationLabel = $('#location-label');
+const locationDialog = $('#location-dialog');
+const locationForm = $('#location-form');
+const locationInput = $('#location-input');
+const locationCancel = $('#location-cancel');
+const checkoutDialog = $('#checkout-dialog');
+const checkoutForm = $('#checkout-form');
+const checkoutSummary = $('#checkout-summary');
+const orderConfirm = $('#order-confirm');
+const newsletterForm = $('#newsletter-form');
 
-const format = amount => `₹${amount.toLocaleString('en-IN')}`;
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+const format = amount => `₹${Math.round(amount).toLocaleString('en-IN')}`;
+const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 function getFilteredDishes() {
   const q = query.trim().toLowerCase();
-  return dishes.filter(dish => {
-    const matchesCategory =
-      activeCategory === 'All' ? true :
-      activeCategory === 'Popular' ? dish.popular :
-      dish.category === activeCategory;
+  let list = dishes.filter(dish => {
+    const matchesCategory = activeCategory === 'All' ? true : activeCategory === 'Popular' ? dish.popular : dish.category === activeCategory;
     if (!matchesCategory) return false;
+    if (vegOnly && !dish.veg) return false;
     if (!q) return true;
-    return `${dish.name} ${dish.cuisine} ${dish.category}`.toLowerCase().includes(q);
+    return `${dish.name} ${dish.cuisine} ${dish.category} ${dish.desc}`.toLowerCase().includes(q);
   });
+  const by = {
+    'price-asc': (a, b) => a.price - b.price,
+    'price-desc': (a, b) => b.price - a.price,
+    rating: (a, b) => parseFloat(b.rating) - parseFloat(a.rating),
+    time: (a, b) => a.timeMin - b.timeMin
+  }[sortBy];
+  if (by) list = [...list].sort(by);
+  else if (sortBy === 'featured') list = [...list].sort((a, b) => Number(b.popular) - Number(a.popular));
+  return list;
 }
 
 function syncFilterButtons() {
@@ -77,28 +103,39 @@ function syncFilterButtons() {
   });
 }
 
+function stars(rating) {
+  const r = parseFloat(rating);
+  const full = Math.round(r);
+  return '★'.repeat(full) + '☆'.repeat(5 - full);
+}
+
 function renderDishes() {
   const list = getFilteredDishes();
   const parts = [];
   if (query.trim()) parts.push(`${list.length} result${list.length === 1 ? '' : 's'} for “${query.trim()}”`);
   if (activeCategory !== 'All') parts.push(activeCategory);
+  if (vegOnly) parts.push('Veg');
   resultsCount.textContent = parts.length ? parts.join(' · ') : `${list.length} dishes`;
+  grid.setAttribute('aria-busy', 'false');
 
   if (!list.length) {
     grid.innerHTML = '<div class="empty-state"><p>No dishes found. Try another craving!</p><button type="button" id="reset-filters" class="text-button">Clear search &amp; filters</button></div>';
-    const reset = grid.querySelector('#reset-filters');
-    if (reset) reset.addEventListener('click', resetAll);
+    grid.querySelector('#reset-filters').addEventListener('click', resetAll);
     return;
   }
-
   grid.innerHTML = list.map(dish => `
     <article class="food-card">
-      <div class="food-image" style="background:${escapeHtml(dish.color)}"><span class="food-emoji" aria-hidden="true">${escapeHtml(dish.emoji)}</span></div>
+      <div class="food-image" style="background:linear-gradient(135deg, ${escapeHtml(dish.color)}, #ffffff)">
+        <span class="veg-dot ${dish.veg ? 'veg' : 'nonveg'}" title="${dish.veg ? 'Veg' : 'Non-veg'}"></span>
+        ${dish.popular ? '<span class="badge">Popular</span>' : ''}
+        <span class="food-emoji" aria-hidden="true">${escapeHtml(dish.emoji)}</span>
+      </div>
       <div class="card-info">
-        <span class="tag">${escapeHtml(dish.cuisine)}</span>
+        <span class="tag">${escapeHtml(dish.cuisine)} · ${escapeHtml(dish.time)}</span>
         <h3>${escapeHtml(dish.name)}</h3>
-        <div class="meta"><span aria-label="Rated ${escapeHtml(dish.rating)} out of 5">★ ${escapeHtml(dish.rating)}</span><span>${escapeHtml(dish.time)}</span></div>
-        <div class="price-row"><strong>${format(dish.price)}</strong><button type="button" class="add-button" data-id="${dish.id}" aria-label="Add ${escapeHtml(dish.name)} to bag">+</button></div>
+        <p class="desc">${escapeHtml(dish.desc)}</p>
+        <div class="meta"><span title="Rated ${escapeHtml(dish.rating)} out of 5"><span class="stars" aria-hidden="true">${stars(dish.rating)}</span> ${escapeHtml(dish.rating)}</span></div>
+        <div class="price-row"><strong>${format(dish.price)}</strong><button type="button" class="add-button" data-id="${dish.id}" aria-label="Add ${escapeHtml(dish.name)} to bag">Add +</button></div>
       </div>
     </article>`).join('');
 }
@@ -106,55 +143,81 @@ function renderDishes() {
 function resetAll() {
   activeCategory = 'All';
   query = '';
+  vegOnly = false;
+  sortBy = 'featured';
   searchInput.value = '';
+  vegCheckbox.checked = false;
+  sortSelect.value = 'featured';
   syncFilterButtons();
   renderDishes();
 }
 
+// --- Cart + pricing ---
 function saveCart() {
   try {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  } catch (e) { /* storage unavailable — ignore */ }
+    if (promoCode) localStorage.setItem(PROMO_KEY, promoCode);
+    else localStorage.removeItem(PROMO_KEY);
+  } catch (e) {}
 }
 
-function loadCart() {
+function loadState() {
   try {
     const raw = localStorage.getItem(CART_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return;
-    cart = parsed
-      .map(entry => {
-        const dish = dishes.find(d => d.id === Number(entry.id));
-        if (!dish) return null;
-        const qty = Math.min(99, Math.max(1, Number(entry.qty) || 1));
-        return { ...dish, qty };
-      })
-      .filter(Boolean);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        cart = parsed.map(entry => {
+          const dish = dishes.find(d => d.id === Number(entry.id));
+          if (!dish) return null;
+          return { ...dish, qty: Math.min(99, Math.max(1, Number(entry.qty) || 1)) };
+        }).filter(Boolean);
+      }
+    }
+    promoCode = localStorage.getItem(PROMO_KEY);
+    if (promoCode && !PROMOS[promoCode]) promoCode = null;
+    const savedLoc = localStorage.getItem(LOCATION_KEY);
+    if (savedLoc) locationLabel.textContent = savedLoc;
+    const last = localStorage.getItem(ORDER_KEY);
+    if (last) {
+      const o = JSON.parse(last);
+      $('#last-order').textContent = `Last order ${o.id} · ${o.total} · ${o.eta}`;
+    }
   } catch (e) { cart = []; }
 }
 
-function cartTotals() {
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const delivery = subtotal === 0 ? 0 : (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE);
-  return { subtotal, delivery, total: subtotal + delivery, count: cart.reduce((t, i) => t + i.qty, 0) };
+function priceBreakup() {
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const promo = promoCode ? PROMOS[promoCode] : null;
+  const discount = promo && promo.pct ? Math.min(Math.round(subtotal * promo.pct / 100), promo.cap) : 0;
+  const afterDiscount = subtotal - discount;
+  const delivery = subtotal === 0 ? 0 : (promo && promo.freeDel) || afterDiscount >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const tax = Math.round(afterDiscount * TAX_RATE);
+  return { subtotal, discount, delivery, tax, total: afterDiscount + delivery + tax, count: cart.reduce((t, i) => t + i.qty, 0) };
 }
 
 function renderCart() {
-  const { subtotal, delivery, total, count } = cartTotals();
+  const { subtotal, discount, delivery, tax, total, count } = priceBreakup();
   cartCountEl.textContent = count;
-  cartCountEl.setAttribute('aria-label', `${count} items in bag`);
   cartSubtotalEl.textContent = format(subtotal);
-  cartDeliveryEl.textContent = delivery === 0 && subtotal >= FREE_DELIVERY_THRESHOLD ? 'FREE' : format(delivery);
+  cartDiscountRow.classList.toggle('hidden', !discount);
+  cartDiscountEl.textContent = `−${format(discount)}${promoCode ? ` (${promoCode})` : ''}`;
+  cartDeliveryEl.textContent = subtotal > 0 && delivery === 0 ? 'FREE' : format(delivery);
+  cartTaxEl.textContent = format(tax);
   cartTotalEl.textContent = format(total);
   checkoutBtn.disabled = cart.length === 0;
   checkoutBtn.textContent = cart.length === 0 ? 'Bag is empty' : `Checkout · ${format(total)}`;
 
+  if (subtotal >= FREE_DELIVERY_THRESHOLD) freeDeliveryEl.innerHTML = '<div class="progress done">🎉 You unlocked <b>FREE delivery</b></div>';
+  else if (subtotal > 0) freeDeliveryEl.innerHTML = `<div class="progress-info">Add <b>${format(FREE_DELIVERY_THRESHOLD - subtotal)}</b> more for free delivery</div><div class="progress"><i style="width:${Math.round(subtotal / FREE_DELIVERY_THRESHOLD * 100)}%"></i></div>`;
+  else freeDeliveryEl.innerHTML = '<div class="progress-info">Free delivery over ₹499 · code WELCOME10 for 10% off</div>';
+
   if (!cart.length) {
-    cartItemsEl.innerHTML = '<p class="empty-cart">Your bag is waiting for something delicious.</p>';
+    cartItemsEl.innerHTML = '<p class="empty-cart">Your bag is waiting for something delicious.<br><a href="#menu" id="empty-browse">Browse the menu →</a></p>';
+    const link = cartItemsEl.querySelector('#empty-browse');
+    if (link) link.addEventListener('click', () => toggleCart(false));
     return;
   }
-
   cartItemsEl.innerHTML = cart.map(item => `
     <div class="cart-item">
       <div class="item-icon" style="background:${escapeHtml(item.color)}" aria-hidden="true">${escapeHtml(item.emoji)}</div>
@@ -163,7 +226,7 @@ function renderCart() {
         <small>${format(item.price)} each · <strong>${format(item.price * item.qty)}</strong></small>
         <div class="qty-controls">
           <button type="button" class="qty-btn" data-action="decrease" data-id="${item.id}" aria-label="Decrease quantity of ${escapeHtml(item.name)}">−</button>
-          <span aria-live="polite" aria-label="Quantity ${item.qty}">Qty ${item.qty}</span>
+          <span aria-live="polite">Qty ${item.qty}</span>
           <button type="button" class="qty-btn" data-action="increase" data-id="${item.id}" aria-label="Increase quantity of ${escapeHtml(item.name)}">+</button>
         </div>
       </div>
@@ -177,44 +240,22 @@ function addToCart(id) {
   const existing = cart.find(item => item.id === id);
   if (existing) existing.qty = Math.min(99, existing.qty + 1);
   else cart.push({ ...dish, qty: 1 });
-  saveCart();
-  renderCart();
+  saveCart(); renderCart();
   showToast(`${dish.name} added to your bag`);
-}
-
-function changeQty(id, delta) {
-  const item = cart.find(d => d.id === id);
-  if (!item) return;
-  item.qty += delta;
-  if (item.qty <= 0) cart = cart.filter(d => d !== item);
-  if (item.qty > 99) item.qty = 99;
-  saveCart();
-  renderCart();
-}
-
-function removeItem(id) {
-  const item = cart.find(d => d.id === id);
-  cart = cart.filter(d => d.id !== id);
-  saveCart();
-  renderCart();
-  if (item) showToast(`${item.name} removed`);
 }
 
 function showToast(message) {
   toastEl.textContent = message;
   toastEl.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
 }
 
 function setBackgroundInert(open) {
-  ['main', '.site-header', '#about'].forEach(sel => {
+  ['main', '.site-header', '.site-footer'].forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
-    try {
-      if (open) el.setAttribute('inert', '');
-      else el.removeAttribute('inert');
-    } catch (e) { /* older browsers */ }
+    try { open ? el.setAttribute('inert', '') : el.removeAttribute('inert'); } catch (e) {}
   });
 }
 
@@ -225,12 +266,8 @@ function toggleCart(open) {
   cartButton.setAttribute('aria-expanded', String(open));
   document.body.classList.toggle('no-scroll', open);
   setBackgroundInert(open);
-  if (open) {
-    lastFocusedBeforeCart = document.activeElement;
-    closeCartBtn.focus();
-  } else if (lastFocusedBeforeCart && lastFocusedBeforeCart.focus) {
-    lastFocusedBeforeCart.focus();
-  }
+  if (open) { lastFocusedBeforeCart = document.activeElement; closeCartBtn.focus(); }
+  else if (lastFocusedBeforeCart && lastFocusedBeforeCart.focus) lastFocusedBeforeCart.focus();
 }
 
 function toggleNav(force) {
@@ -239,86 +276,111 @@ function toggleNav(force) {
   menuButton.setAttribute('aria-expanded', String(willOpen));
 }
 
-function loadLocation() {
-  try {
-    const saved = localStorage.getItem(LOCATION_KEY);
-    if (saved) locationLabel.textContent = saved;
-  } catch (e) { /* ignore */ }
+// --- Checkout flow ---
+function openCheckout() {
+  if (!cart.length) return showToast('Add a dish before checking out');
+  const { subtotal, discount, delivery, tax, total, count } = priceBreakup();
+  checkoutSummary.innerHTML = `${count} item${count === 1 ? '' : 's'} · ${format(subtotal)}${discount ? ` − ${format(discount)}` : ''} + ${delivery === 0 ? 'FREE delivery' : format(delivery)} + ${format(tax)} tax = <b>${format(total)}</b>`;
+  showPane(1);
+  toggleCart(false);
+  checkoutDialog.showModal();
 }
 
-function openLocation() {
-  locationInput.value = locationLabel.textContent.trim() === 'New Delhi' ? '' : locationLabel.textContent.trim();
-  if (typeof locationDialog.showModal === 'function') {
-    locationDialog.showModal();
-    setTimeout(() => locationInput.focus(), 50);
-  } else {
-    const next = window.prompt('Enter delivery area:', locationLabel.textContent);
-    if (next && next.trim()) {
-      locationLabel.textContent = next.trim().slice(0, 60);
-      try { localStorage.setItem(LOCATION_KEY, locationLabel.textContent); } catch (e) {}
-    }
-  }
+function showPane(n) {
+  checkoutForm.querySelectorAll('fieldset').forEach(fs => { fs.hidden = Number(fs.dataset.pane) !== n; });
+  checkoutDialog.querySelectorAll('.checkout-steps li').forEach(li => li.classList.toggle('active', Number(li.dataset.step) === n));
+  const first = checkoutDialog.querySelector('fieldset:not([hidden]) input, fieldset:not([hidden]) button');
+  if (first) setTimeout(() => first.focus(), 50);
 }
 
-// Events
+function placeOrder(data) {
+  const { total } = priceBreakup();
+  const id = 'DD-' + Math.floor(100000 + Math.random() * 900000);
+  const eta = '25–30 min';
+  const order = { id, total: format(total), eta, name: data.name, pay: data.pay, at: new Date().toISOString() };
+  try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
+  $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${eta}`;
+  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, your food is being prepared. Arriving in <b>${eta}</b> · Paying via ${escapeHtml(data.pay)} · Total <b>${format(total)}</b>.</p><p class="muted">A confirmation was “sent” to ${escapeHtml(data.phone)}. Cold food? We refund or redeliver.</p>`;
+  cart = []; promoCode = null; saveCart(); renderCart();
+  showPane(3);
+}
+
+// --- Events ---
 filtersEl.addEventListener('click', e => {
   const btn = e.target.closest('button');
   if (!btn) return;
   activeCategory = btn.dataset.category;
-  syncFilterButtons();
-  renderDishes();
+  syncFilterButtons(); renderDishes();
 });
-
+sortSelect.addEventListener('change', () => { sortBy = sortSelect.value; renderDishes(); });
+vegCheckbox.addEventListener('change', () => { vegOnly = vegCheckbox.checked; renderDishes(); });
 grid.addEventListener('click', e => {
   const btn = e.target.closest('.add-button');
   if (btn) addToCart(Number(btn.dataset.id));
 });
-
 cartItemsEl.addEventListener('click', e => {
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
   const id = Number(btn.dataset.id);
-  const action = btn.dataset.action;
-  if (action === 'increase') changeQty(id, 1);
-  else if (action === 'decrease') changeQty(id, -1);
-  else if (action === 'remove') removeItem(id);
+  const item = cart.find(d => d.id === id);
+  if (!item) return;
+  if (btn.dataset.action === 'increase') item.qty = Math.min(99, item.qty + 1);
+  else if (btn.dataset.action === 'decrease') { item.qty -= 1; if (item.qty <= 0) cart = cart.filter(d => d !== item); }
+  else if (btn.dataset.action === 'remove') { cart = cart.filter(d => d.id !== id); showToast(`${item.name} removed`); }
+  saveCart(); renderCart();
 });
-
+clearCartBtn.addEventListener('click', () => {
+  if (!cart.length) return;
+  cart = []; promoCode = null; saveCart(); renderCart(); showToast('Bag cleared');
+});
+promoForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const code = promoInput.value.trim().toUpperCase();
+  if (!code) return;
+  if (PROMOS[code]) { promoCode = code; saveCart(); renderCart(); promoMsg.textContent = `${code} applied: ${PROMOS[code].label}.`; showToast(`Promo ${code} applied`); }
+  else { promoMsg.textContent = 'That code is not valid. Try WELCOME10.'; }
+});
+$('#promo-remove').addEventListener('click', () => { promoCode = null; promoInput.value = ''; promoMsg.textContent = ''; saveCart(); renderCart(); });
 cartButton.addEventListener('click', () => toggleCart(true));
 closeCartBtn.addEventListener('click', () => toggleCart(false));
 overlayEl.addEventListener('click', () => toggleCart(false));
-
-checkoutBtn.addEventListener('click', () => {
-  if (!cart.length) return showToast('Add a dish before checking out');
-  const { total } = cartTotals();
-  showToast(`Order placed for ${format(total)} — your food is on its way!`);
-  cart = [];
-  saveCart();
-  renderCart();
-  toggleCart(false);
-  document.querySelector('#menu').scrollIntoView({ behavior: 'smooth' });
+checkoutBtn.addEventListener('click', openCheckout);
+$('#checkout-cancel').addEventListener('click', () => { checkoutDialog.close(); toggleCart(true); });
+checkoutForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const btn = e.submitter;
+  const next = btn && btn.dataset ? btn.dataset.next : null;
+  if (next === 'close') { checkoutDialog.close(); $('#menu').scrollIntoView({ behavior: 'smooth' }); return; }
+  if (next === '2') {
+    const name = checkoutForm.name.value.trim();
+    const phone = checkoutForm.phone.value.trim();
+    const address = checkoutForm.address.value.trim();
+    if (!name || !phone || !address) { showToast('Please fill name, phone and address'); return; }
+    if (!/^[0-9+ \-]{10,15}$/.test(phone)) { showToast('Enter a valid phone number'); checkoutForm.phone.focus(); return; }
+    showPane(2); return;
+  }
+  if (next === '3') {
+    placeOrder({ name: checkoutForm.name.value.trim(), phone: checkoutForm.phone.value.trim(), pay: (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || 'UPI' });
+    return;
+  }
+  if (next === '1') { showPane(1); return; }
 });
-
 searchForm.addEventListener('submit', e => {
   e.preventDefault();
-  query = searchInput.value;
-  renderDishes();
-  document.querySelector('#menu').scrollIntoView({ behavior: 'smooth' });
+  query = searchInput.value; renderDishes();
+  $('#menu').scrollIntoView({ behavior: 'smooth' });
 });
-
 searchInput.addEventListener('input', () => {
-  if (searchInput.value === '' && query !== '') {
-    query = '';
-    renderDishes();
-  }
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => { query = searchInput.value; grid.setAttribute('aria-busy', 'true'); renderDishes(); }, 200);
 });
-
-document.querySelector('#view-all').addEventListener('click', resetAll);
-
+$('#view-all').addEventListener('click', resetAll);
 menuButton.addEventListener('click', () => toggleNav());
 navEl.querySelectorAll('a').forEach(link => link.addEventListener('click', () => toggleNav(false)));
-
-document.querySelector('.location').addEventListener('click', openLocation);
+document.querySelector('.location').addEventListener('click', () => {
+  locationInput.value = locationLabel.textContent.trim() === 'New Delhi' ? '' : locationLabel.textContent.trim();
+  if (typeof locationDialog.showModal === 'function') { locationDialog.showModal(); setTimeout(() => locationInput.focus(), 50); }
+});
 locationCancel.addEventListener('click', () => locationDialog.close());
 locationForm.addEventListener('submit', () => {
   const value = locationInput.value.trim().slice(0, 60);
@@ -328,22 +390,31 @@ locationForm.addEventListener('submit', () => {
     showToast(`Delivering to ${value}`);
   }
 });
-
+document.querySelectorAll('.code-chip').forEach(chip => chip.addEventListener('click', async () => {
+  const code = chip.dataset.code;
+  promoInput.value = code;
+  try { await navigator.clipboard.writeText(code); showToast(`Code ${code} copied — paste it in your bag`); }
+  catch (e) { showToast(`Use code ${code} in your bag`); }
+  toggleCart(true);
+}));
+newsletterForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const email = $('#newsletter-email').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $('#newsletter-msg').textContent = 'Enter a valid email address.'; return; }
+  $('#newsletter-msg').textContent = 'You are in! Code WELCOME10 works on your first order.';
+  showToast('Subscribed — check your inbox for ₹100 off');
+  newsletterForm.reset();
+});
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (locationDialog.open) locationDialog.close();
+    if (navEl.classList.contains('open')) toggleNav(false);
     else if (cartEl.classList.contains('open')) toggleCart(false);
-    else if (navEl.classList.contains('open')) toggleNav(false);
   }
 });
-
-window.addEventListener('resize', () => {
-  if (window.innerWidth > 800 && navEl.classList.contains('open')) toggleNav(false);
-});
+window.addEventListener('resize', () => { if (window.innerWidth > 800 && navEl.classList.contains('open')) toggleNav(false); });
 
 // Init
-loadCart();
-loadLocation();
+loadState();
 syncFilterButtons();
 renderDishes();
 renderCart();
