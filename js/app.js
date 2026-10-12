@@ -149,7 +149,7 @@ function cardControlHtml(dish) {
 }
 
 function dishImg(dish, cls = '') {
-  return `<img class="dish-photo ${cls}" src="${escapeHtml(dish.img)}" alt="${escapeHtml(dish.name)}" loading="lazy" width="640" height="400" onerror="this.remove()" />`;
+  return `<img class="dish-photo ${cls}" src="${escapeHtml(dish.img)}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="400" onerror="this.remove()" />`;
 }
 
 function updateCardControl(id) {
@@ -320,12 +320,31 @@ function loadState() {
 
 function priceBreakup() {
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const r = calcBreakup(subtotal, promoCode);
+  const r = calcBreakup(subtotal, promoCode, locationLabel.textContent);
   return { ...r, count: cart.reduce((t, i) => t + i.qty, 0) };
 }
 
+// Server quote when a backend is configured; falls back to local math.
+// The backend MUST recompute (see docs/api-contract.md) — this is only a preview.
+async function serverQuote() {
+  const local = priceBreakup();
+  if (!SITE.quoteEndpoint) return local;
+  try {
+    const res = await fetch(SITE.quoteEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: cart.map(i => ({ id: i.id, qty: i.qty })), promo: promoCode, location: locationLabel.textContent })
+    });
+    if (!res.ok) throw new Error('quote failed');
+    const q = await res.json();
+    return { ...local, ...q, zone: local.zone, count: local.count };
+  } catch (e) {
+    return local;
+  }
+}
+
 function renderCart() {
-  const { subtotal, discount, delivery, tax, total, count, promo } = priceBreakup();
+  const { subtotal, discount, delivery, tax, total, count, promo, zone } = priceBreakup();
   cartCountEl.textContent = count;
   cartSubtotalEl.textContent = format(subtotal);
   cartDiscountRow.classList.toggle('hidden', !discount);
@@ -337,9 +356,9 @@ function renderCart() {
   checkoutBtn.textContent = cart.length === 0 ? 'Bag is empty' : `Checkout · ${format(total)}`;
   updateStickyBar(count, total);
 
-  if (subtotal >= FREE_DELIVERY_THRESHOLD) freeDeliveryEl.innerHTML = '<div class="progress done">🎉 You unlocked <b>FREE delivery</b></div>';
-  else if (subtotal > 0) freeDeliveryEl.innerHTML = `<div class="progress-info">Add <b>${format(FREE_DELIVERY_THRESHOLD - subtotal)}</b> more for free delivery</div><div class="progress"><i style="width:${Math.round(subtotal / FREE_DELIVERY_THRESHOLD * 100)}%"></i></div>`;
-  else freeDeliveryEl.innerHTML = '<div class="progress-info">Free delivery over ₹499 · code WELCOME10 for 10% off</div>';
+  if (subtotal >= zone.threshold) freeDeliveryEl.innerHTML = '<div class="progress done">🎉 You unlocked <b>FREE delivery</b></div>';
+  else if (subtotal > 0) freeDeliveryEl.innerHTML = `<div class="progress-info">Add <b>${format(zone.threshold - subtotal)}</b> more for free delivery in ${escapeHtml(zone.label)}</div><div class="progress"><i style="width:${Math.round(subtotal / zone.threshold * 100)}%"></i></div>`;
+  else freeDeliveryEl.innerHTML = `<div class="progress-info">Free delivery over ${format(zone.threshold)} in ${escapeHtml(zone.label)} · code WELCOME10 for 10% off</div>`;
 
   if (!cart.length) {
     cartItemsEl.innerHTML = '<p class="empty-cart">Your bag is waiting for something delicious.<br><a href="#menu" id="empty-browse">Browse the menu →</a></p>';
@@ -349,7 +368,7 @@ function renderCart() {
   }
   cartItemsEl.innerHTML = cart.map(item => `
     <div class="cart-item">
-      <div class="item-icon has-photo" style="background:${escapeHtml(item.color)}" aria-hidden="true"><img src="${escapeHtml(item.img)}" alt="" loading="lazy" width="92" height="92" onerror="this.remove()" /></div>
+      <div class="item-icon has-photo" style="background:${escapeHtml(item.color)}" aria-hidden="true"><img src="${escapeHtml(item.img)}" alt="" loading="lazy" decoding="async" width="92" height="92" onerror="this.remove()" /></div>
       <div class="item-info">
         <b>${escapeHtml(item.name)}</b>
         <small>${format(item.price)} each · <strong>${format(item.price * item.qty)}</strong></small>
@@ -510,14 +529,29 @@ function slotLabel(id) {
 }
 
 // --- Checkout flow ---
-function openCheckout() {
+function applySlotCutoffs() {
+  const hour = new Date().getHours();
+  const tonight = checkoutForm.querySelector('input[name="slot"][value="tonight"]');
+  const asap = checkoutForm.querySelector('input[name="slot"][value="asap"]');
+  // Kitchen takes same-day slots until 7pm; late-night orders are ASAP-only if kitchen open.
+  if (tonight) {
+    const closed = hour >= 19;
+    tonight.disabled = closed;
+    tonight.closest('.pay-option').title = closed ? 'Tonight slots closed after 7pm — pick ASAP or Tomorrow' : '';
+    if (closed && tonight.checked && asap) asap.checked = true;
+  }
+}
+
+async function openCheckout() {
   if (!cart.length) return showToast('Add a dish before checking out');
-  const { subtotal, discount, delivery, tax, total, count } = priceBreakup();
-  checkoutSummary.innerHTML = `${count} item${count === 1 ? '' : 's'} · ${format(subtotal)}${discount ? ` − ${format(discount)}` : ''} + ${delivery === 0 ? 'FREE delivery' : format(delivery)} + ${format(tax)} tax = <b>${format(total)}</b>`;
+  checkoutSummary.innerHTML = 'Checking live prices…';
   loadAddresses();
+  applySlotCutoffs();
   showPane(1);
   toggleCart(false);
   checkoutDialog.showModal();
+  const { subtotal, discount, delivery, tax, total, count, zone } = await serverQuote();
+  checkoutSummary.innerHTML = `${count} item${count === 1 ? '' : 's'} · ${format(subtotal)}${discount ? ` − ${format(discount)}` : ''} + ${delivery === 0 ? 'FREE delivery' : format(delivery)} + ${format(tax)} tax = <b>${format(total)}</b><br><small>${escapeHtml(zone.label)}${SITE.quoteEndpoint ? ' · live prices' : ' · estimated'}</small>`;
 }
 
 function showPane(n) {
@@ -576,13 +610,20 @@ function placeOrder(data) {
 }
 
 // --- Reviews (user-submitted) ---
+function dishOrderedBefore(dishName) {
+  return getOrders().some(o => (o.items || []).some(i => i.name === dishName));
+}
+
+function reviewBadge(dishName) {
+  return dishOrderedBefore(dishName) ? '✓ Verified order' : 'Guest review';
+}
 function renderSavedReviews() {
   if (!reviewsGrid) return;
   try {
     const saved = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
     saved.forEach(r => {
       const el = document.createElement('article');
-      el.innerHTML = `<div class="stars" aria-label="${r.rating} out of 5 stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p>“${escapeHtml(r.text)}”</p><footer><b>${escapeHtml(r.name)}</b><small>Guest review · Ordered ${escapeHtml(r.dish)}</small></footer>`;
+      el.innerHTML = `<div class="stars" aria-label="${r.rating} out of 5 stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p>“${escapeHtml(r.text)}”</p><footer><b>${escapeHtml(r.name)}</b><small>${reviewBadge(r.dish)} · Ordered ${escapeHtml(r.dish)}</small></footer>`;
       reviewsGrid.prepend(el);
     });
   } catch (e) {}
@@ -835,7 +876,7 @@ if (reviewForm) {
       localStorage.setItem(REVIEWS_KEY, JSON.stringify(saved.slice(0, 12)));
     } catch (e) {}
     const el = document.createElement('article');
-    el.innerHTML = `<div class="stars" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div><p>“${escapeHtml(review.text)}”</p><footer><b>${escapeHtml(review.name)}</b><small>Guest review · Ordered ${escapeHtml(review.dish)}</small></footer>`;
+    el.innerHTML = `<div class="stars" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div><p>“${escapeHtml(review.text)}”</p><footer><b>${escapeHtml(review.name)}</b><small>${reviewBadge(review.dish)} · Ordered ${escapeHtml(review.dish)}</small></footer>`;
     reviewsGrid.prepend(el);
     reviewForm.reset();
     showToast('Thanks! Your review is live');

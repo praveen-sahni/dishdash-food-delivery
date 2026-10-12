@@ -20,6 +20,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="preload" as="image" href="images/dish-1.svg" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -145,7 +146,8 @@
         <p class="eyebrow">GOOD TO KNOW</p>
         <h2 id="faq-heading">Questions, answered</h2>
         <details open><summary>How fast is delivery?</summary><p>Most orders arrive in 25–30 minutes. Each dish shows its estimate before you order.</p></details>
-        <details><summary>What are the delivery fees?</summary><p>₹29 flat. <strong>Free over ₹499.</strong> Try code <code>WELCOME10</code> for 10% off your first order.</p></details>
+        <details><summary>What are the delivery fees?</summary><p>Fees depend on your zone. Try code <code>WELCOME10</code> for 10% off your first order.</p>
+          <table class="zone-table"><caption>Delivery zones &amp; fees</caption><thead><tr><th scope="col">Zone</th><th scope="col">Fee</th><th scope="col">Free over</th></tr></thead><tbody><tr><td>Central Delhi (CP, New Delhi, Noida, Gurugram)</td><td>₹29</td><td>₹499</td></tr><tr><td>Mumbai West (Andheri, Bandra)</td><td>₹39</td><td>₹599</td></tr><tr><td>Everywhere else</td><td>₹49</td><td>₹799</td></tr></tbody></table></details>
         <details><summary>What if my food arrives cold?</summary><p>We refund or redeliver — no questions asked. See our <a href="refunds.html">refund policy</a> or contact <a href="mailto:hello@dishdash.example" data-site="email">our support</a>.</p></details>
         <details><summary>Do you have veg options?</summary><p>Yes — toggle <strong>Veg only</strong> above the menu. Dishes marked with a green dot are vegetarian.</p></details>
       </section>

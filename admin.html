@@ -7,10 +7,14 @@
 <body style="max-width:900px;margin:0 auto;padding:40px 22px">
 <p><a href="./">← Back to DishDash</a></p>
 <h1>Kitchen dashboard (local preview)</h1>
-<p><small>Interim tool until the backend admin ships. Reads orders stored in this browser only. Protect with a password before sharing.</small></p>
+<p><small>Interim tool until the backend admin ships. Reads orders stored in this browser only.</small></p>
+<form id="gate" style="display:grid;gap:10px;max-width:320px;margin:16px 0"><b>Staff PIN required</b><input id="pin" type="password" inputmode="numeric" placeholder="Enter staff PIN" style="padding:10px;border:1px solid #e6e0d5;border-radius:8px" /><button type="submit">Unlock</button><small>Default PIN is <code>dishdash-123</code> — change ADMIN_PIN in this file before sharing, and remove this page at backend launch.</small></form>
+<div id="admin-body" hidden>
 <div style="display:flex;gap:8px;margin:16px 0"><button id="exp-json" type="button">Export JSON</button><button id="exp-csv" type="button">Export CSV</button><button id="clear" type="button">Clear local orders</button></div>
 <div id="list" style="display:grid;gap:10px"></div>
+</div>
 <script type="module">
+const ADMIN_PIN = 'dishdash-123'; // CHANGE BEFORE SHARING. Backend admin replaces this page at launch.
 const KEY = 'dishdash-orders-v1';
 const get = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
 const list = document.getElementById('list');
@@ -29,6 +33,13 @@ document.getElementById('exp-csv').onclick = () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.csv'; a.click();
 };
 document.getElementById('clear').onclick = () => { if (confirm('Clear all local orders?')) { localStorage.removeItem(KEY); render(); } };
+if (sessionStorage.getItem('dishdash-admin') === '1') unlock();
+document.getElementById('gate').onsubmit = e => {
+  e.preventDefault();
+  if (document.getElementById('pin').value === ADMIN_PIN) { sessionStorage.setItem('dishdash-admin', '1'); unlock(); }
+  else alert('Wrong PIN');
+};
+function unlock() { document.getElementById('gate').hidden = true; document.getElementById('admin-body').hidden = false; }
 render();
 </script>
 </body>

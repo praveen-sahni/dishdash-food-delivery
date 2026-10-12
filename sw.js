@@ -1,4 +1,4 @@
-const CACHE = 'dishdash-v2';
+const CACHE = 'dishdash-v3';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'site.webmanifest',
   'js/app.js', 'js/data.js', 'js/pricing.js', 'js/payments.js',

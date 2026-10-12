@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calcBreakup, isReferralCode, isValidEmail, isValidPhone, normalizePromo, resolvePromo } from '../js/pricing.js';
+import { zoneFor } from '../js/data.js';
 
 test('empty cart has zero totals', () => {
-  assert.deepEqual(calcBreakup(0, null), { subtotal: 0, discount: 0, delivery: 0, tax: 0, total: 0, promo: null });
+  const r = calcBreakup(0, null);
+  assert.equal(r.subtotal, 0);
+  assert.equal(r.discount, 0);
+  assert.equal(r.delivery, 0);
+  assert.equal(r.tax, 0);
+  assert.equal(r.total, 0);
+  assert.equal(r.promo, null);
 });
 
 test('delivery fee below threshold, free above', () => {
@@ -36,4 +43,14 @@ test('validators', () => {
   assert.ok(isValidEmail('you@example.com'));
   assert.ok(!isValidEmail('not-an-email'));
   assert.equal(normalizePromo('  welcome10 '), 'WELCOME10');
+});
+
+test('delivery zones vary fee and threshold', () => {
+  assert.equal(zoneFor('Connaught Place').id, 'central-delhi');
+  assert.equal(zoneFor('Andheri West').fee, 39);
+  assert.equal(zoneFor('Somewhere Else').fee, 49);
+  assert.equal(calcBreakup(400, null, 'New Delhi').delivery, 29);
+  assert.equal(calcBreakup(400, null, 'Bandra').delivery, 39);
+  assert.equal(calcBreakup(600, null, 'Bandra').delivery, 0);
+  assert.equal(calcBreakup(400).delivery, 29);
 });

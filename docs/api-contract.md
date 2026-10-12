@@ -20,7 +20,8 @@ everything below — never trust client totals.
 - `WELCOME10`: 10% off, capped at ₹120.
 - `FREEDEL`: free delivery, no discount.
 - Referral `DD-XXXX`: flat ₹50 off when subtotal ≥ ₹199.
-- Delivery ₹29 flat, free when discounted subtotal ≥ ₹499.
+- Delivery is zone-based (`ZONES` in `js/data.js`, `zoneFor(location)`):
+  Central Delhi ₹29 / free ≥ ₹499; Mumbai West ₹39 / free ≥ ₹599; elsewhere ₹49 / free ≥ ₹799.
 - GST 5% on discounted subtotal, rounded.
 
 ## Security notes

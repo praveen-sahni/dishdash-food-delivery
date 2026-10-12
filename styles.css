@@ -436,6 +436,18 @@ body.no-scroll { overflow: hidden; }
 [data-theme="dark"] .checkout-summary { background: #2c2a25; }
 [data-theme="dark"] .order-card[data-status="delivered"] .pill { background: #1d3524; color: #7ccb8f; border-color: #2c5a37; }
 [data-theme="dark"] .trust-logos { color: var(--ink); }
+[data-theme="dark"] .fav-button, [data-theme="dark"] .dish-close { background: #2c2a25ee; color: var(--ink); border: 1px solid var(--line); }
+[data-theme="dark"] .fav-button[aria-pressed="true"] { background: #f3efe7; color: #141311; }
+[data-theme="dark"] .shimmer, [data-theme="dark"] .shimmer-line { background: linear-gradient(90deg, #2c2a25 25%, #3a382f 50%, #2c2a25 75%); background-size: 200% 100%; }
+[data-theme="dark"] .zone-table { border-color: var(--line); }
+[data-theme="dark"] .zone-table th, [data-theme="dark"] .zone-table td { border-color: var(--line); }
+[data-theme="dark"] .pay-option { background: transparent; }
+
+/* Zone table */
+.zone-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+.zone-table caption { text-align: left; font-weight: 700; padding-bottom: 6px; }
+.zone-table th, .zone-table td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+.zone-table th { background: var(--cream); }
 
 /* Cart clarity: thumbnails + emphasized total */
 .cart-item .item-icon { overflow: hidden; }

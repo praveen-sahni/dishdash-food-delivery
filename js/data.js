@@ -24,6 +24,16 @@ export const TAX_RATE = 0.05;
 export const REFERRAL_OFF = 50;
 export const REFERRAL_MIN = 199;
 
+// Delivery zones. First regex match wins; fallback is the last entry.
+// Keep in sync with the zone table in index.html FAQ.
+export const ZONES = [
+  { id: 'central-delhi', label: 'Central Delhi (CP, New Delhi, Noida, Gurugram)', match: /connaught|new delhi|noida|gurugram|delhi/i, fee: 29, threshold: 499 },
+  { id: 'mumbai-west', label: 'Mumbai West (Andheri, Bandra)', match: /andheri|bandra|mumbai/i, fee: 39, threshold: 599 },
+  { id: 'other', label: 'Everywhere else', match: /.*/, fee: 49, threshold: 799 }
+];
+
+export const zoneFor = (location = '') => String(location).trim() === '' ? ZONES[0] : ZONES.find(z => z.match.test(location)) || ZONES[ZONES.length - 1];
+
 // Single place for real business details. Fill these in before going live —
 // the site renders placeholders wherever a value is still empty.
 export const SITE = {
@@ -36,5 +46,6 @@ export const SITE = {
   fssai: '', // e.g. '10012345678901' — legally required to sell food online in India
   gstin: '', // e.g. '07ABCDE1234F1Z5' — required for GST invoices
   razorpayKeyId: '', // live payments key; empty = demo mode (no charge)
+  quoteEndpoint: '', // backend URL to POST {items,promo,location} for server pricing; empty = local calc
   newsletterEndpoint: '' // backend URL to POST {email}; empty = local mock mode
 };

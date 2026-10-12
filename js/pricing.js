@@ -1,4 +1,4 @@
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, PROMOS, REFERRAL_MIN, REFERRAL_OFF, TAX_RATE } from './data.js';
+import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, PROMOS, REFERRAL_MIN, REFERRAL_OFF, TAX_RATE, zoneFor } from './data.js';
 
 export const normalizePromo = (code = '') => String(code).trim().toUpperCase();
 
@@ -12,16 +12,17 @@ export function resolvePromo(code = '') {
   return null;
 }
 
-export function calcBreakup(subtotal = 0, promoCode = null) {
+export function calcBreakup(subtotal = 0, promoCode = null, location = '') {
   subtotal = Math.max(0, Math.round(subtotal));
+  const zone = zoneFor(location);
   const promo = promoCode ? resolvePromo(promoCode) : null;
   let discount = 0;
   if (promo?.pct) discount = Math.min(Math.round((subtotal * promo.pct) / 100), promo.cap);
   else if (promo?.kind === 'referral' && subtotal >= (promo.min ?? 0)) discount = Math.min(promo.flat, subtotal);
   const afterDiscount = subtotal - discount;
-  const delivery = subtotal === 0 ? 0 : promo?.freeDel || afterDiscount >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const delivery = subtotal === 0 ? 0 : promo?.freeDel || afterDiscount >= zone.threshold ? 0 : zone.fee;
   const tax = Math.round(afterDiscount * TAX_RATE);
-  return { subtotal, discount, delivery, tax, total: afterDiscount + delivery + tax, promo };
+  return { subtotal, discount, delivery, tax, total: afterDiscount + delivery + tax, promo, zone };
 }
 
 export const isValidPhone = (phone = '') => /^[0-9+ \-]{10,15}$/.test(String(phone).trim());
