@@ -4,7 +4,14 @@
 // startPayment will then open the real gateway and resolve only on success.
 import { SITE } from './data.js';
 
-export const getPayMode = () => (SITE.razorpayKeyId ? 'live' : 'demo');
+export const keyMode = (key = '') => {
+  const k = String(key).trim();
+  if (!k) return 'demo';
+  if (!/^rzp_(test|live)_[A-Za-z0-9]+$/.test(k)) return 'invalid';
+  return k.startsWith('rzp_test_') ? 'test' : 'live';
+};
+
+export const getPayMode = () => keyMode(SITE.razorpayKeyId);
 
 function loadRazorpay() {
   return new Promise((resolve, reject) => {
@@ -18,7 +25,9 @@ function loadRazorpay() {
 }
 
 export async function startPayment({ amountPaise, orderId, name, phone, email }) {
-  if (!SITE.razorpayKeyId) {
+  const mode = getPayMode();
+  if (mode === 'invalid') throw new Error('Payments key is misconfigured (expected rzp_test_… or rzp_live_…) — no charge made');
+  if (mode === 'demo') {
     return { provider: 'demo', paymentId: `pay_demo_${orderId}` };
   }
   const Razorpay = await loadRazorpay();

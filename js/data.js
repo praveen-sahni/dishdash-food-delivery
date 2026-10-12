@@ -45,7 +45,7 @@ export const SITE = {
   hours: '11am–11pm daily',
   fssai: '', // e.g. '10012345678901' — legally required to sell food online in India
   gstin: '', // e.g. '07ABCDE1234F1Z5' — required for GST invoices
-  razorpayKeyId: '', // live payments key; empty = demo mode (no charge)
+  razorpayKeyId: '', // rzp_test_… or rzp_live_… key; empty = demo mode (no charge)
   quoteEndpoint: '', // backend URL to POST {items,promo,location} for server pricing; empty = local calc
   newsletterEndpoint: '' // backend URL to POST {email}; empty = local mock mode
 };

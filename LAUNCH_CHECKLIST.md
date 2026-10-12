@@ -1,6 +1,6 @@
 # Go-live checklist
 
-- [ ] Fill `SITE` in `js/data.js`: support phone/email, address, hours.
+- [ ] Fill business details — either `js/data.js` `SITE` or copy `config.site.example.json` to `config.site.json` (git-ignored, no code edits).
 - [ ] FSSAI license obtained → set `SITE.fssai` (shown in footer + invoice).
 - [ ] GSTIN obtained → set `SITE.gstin` (GST invoices).
 - [ ] Razorpay (or Stripe) key → set `SITE.razorpayKeyId`; verify test + live payments + webhooks + refunds.

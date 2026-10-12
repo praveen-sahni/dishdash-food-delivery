@@ -277,7 +277,9 @@ function openDish(id, keepOpen) {
 // --- Cart + pricing ---
 function saveCart() {
   try {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    // Store only id+qty: prices always re-resolve from canonical data on load,
+    // so hand-edited storage prices can never survive a reload.
+    localStorage.setItem(CART_KEY, JSON.stringify(cart.map(i => ({ id: i.id, qty: i.qty }))));
     if (promoCode) localStorage.setItem(PROMO_KEY, promoCode);
     else localStorage.removeItem(PROMO_KEY);
   } catch (e) {}
@@ -601,7 +603,7 @@ function placeOrder(data) {
     : `<small class="field-error">Demo receipt — GSTIN/FSSAI not configured yet (see LAUNCH_CHECKLIST).</small>`;
   const itemRows = items.map(i => `<div class="total-row"><span>${escapeHtml(i.name)} × ${i.qty}</span><strong>${format(i.price * i.qty)}</strong></div>`).join('');
   $('#last-order').textContent = `Last order ${id} · ${format(total)} · ${order.eta}`;
-  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, arriving <b>${escapeHtml(order.eta)}</b> · Paying via ${escapeHtml(data.pay)}${data.paymentId ? ` · <small>${escapeHtml(data.paymentId)}</small>` : ''} · Total <b>${format(total)}</b>.</p><p class="muted">Slot: ${escapeHtml(slot)} · Key <small>${escapeHtml(idempotencyKey)}</small> · <button type="button" class="link-button" data-reorder-latest>Reorder these items</button> · <button type="button" class="link-button" data-print-invoice>Print invoice</button></p><div class="invoice" id="invoice"><b>${escapeHtml(SITE.shopName)} — Tax Invoice (demo)</b>${bizLine}${itemRows}<div class="total-row"><span>Subtotal</span><strong>${format(subtotal)}</strong></div>${discount ? `<div class="total-row"><span>Discount</span><strong>−${format(discount)}</strong></div>` : ''}<div class="total-row"><span>Delivery</span><strong>${delivery === 0 ? 'FREE' : format(delivery)}</strong></div><div class="total-row"><span>GST (5%)</span><strong>${format(tax)}</strong></div><div class="total-row grand-total"><span>Total</span><strong>${format(total)}</strong></div></div><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol>`;
+  orderConfirm.innerHTML = `<p class="big">🎉 Order <b>${escapeHtml(id)}</b> confirmed!</p><p>Hi ${escapeHtml(data.name)}, arriving <b>${escapeHtml(order.eta)}</b> · Paying via ${escapeHtml(data.pay)}${data.paymentId ? ` · <small>${escapeHtml(data.paymentId)}</small>` : ''} · Total <b>${format(total)}</b>.</p><p class="muted">Slot: ${escapeHtml(slot)} · Key <small>${escapeHtml(idempotencyKey)}</small> · <button type="button" class="link-button" data-reorder-latest>Reorder these items</button> · <button type="button" class="link-button" data-print-invoice>Print invoice</button></p><div class="invoice" id="invoice"><b>${escapeHtml(SITE.shopName)} — Tax Invoice (demo)</b>${bizLine}${itemRows}<div class="total-row"><span>Subtotal</span><strong>${format(subtotal)}</strong></div>${discount ? `<div class="total-row"><span>Discount</span><strong>−${format(discount)}</strong></div>` : ''}<div class="total-row"><span>Delivery</span><strong>${delivery === 0 ? 'FREE' : format(delivery)}</strong></div><div class="total-row"><span>GST (5%)</span><strong>${format(tax)}</strong></div><div class="total-row grand-total"><span>Total</span><strong>${format(total)}</strong></div></div><ol class="tracker" aria-label="Order status"><li><span><b>Order received</b>Kitchen confirmed</span></li><li><span><b>Preparing</b>Cooking fresh</span></li><li><span><b>On the way</b>Rider picked up</span></li><li><span><b>Delivered</b>Enjoy!</span></li></ol><p class="muted">Simulated tracking for demo — live kitchen/rider status arrives with the backend.</p>`;
   const ids = cart.map(i => i.id);
   cart = []; promoCode = null; saveCart(); renderCart(); renderOrders();
   ids.forEach(updateCardControl);
@@ -916,17 +918,38 @@ loadState();
 syncFilterButtons();
 renderDishes();
 renderCart();
+fillSiteContacts();
+loadSiteOverride();
 
 // Fill real business details from SITE config; placeholders stay visible until configured.
-document.querySelectorAll('[data-site="phone"]').forEach(el => {
-  if (SITE.supportPhone) { el.textContent = SITE.supportPhone; if (el.tagName === 'A') el.href = SITE.supportPhoneHref || `tel:${SITE.supportPhone.replace(/\s/g, '')}`; }
-});
-document.querySelectorAll('[data-site="email"]').forEach(el => {
-  if (SITE.supportEmail) { el.textContent = SITE.supportEmail; if (el.tagName === 'A') el.href = `mailto:${SITE.supportEmail}`; }
-});
-document.querySelectorAll('[data-site="fssai"]').forEach(el => { el.textContent = SITE.fssai ? `FSSAI Lic. No. ${SITE.fssai}` : 'FSSAI license: pending — see launch checklist'; });
-const payNote = $('#pay-mode-note');
-if (payNote) payNote.textContent = getPayMode() === 'live' ? 'Secured by Razorpay — UPI, cards & netbanking.' : 'Demo mode — no charge. Set a payments key to go live.';
+// Owners: copy config.site.example.json to config.site.json and fill values —
+// no code edits needed. config.site.json is git-ignored.
+function fillSiteContacts() {
+  document.querySelectorAll('[data-site="phone"]').forEach(el => {
+    if (SITE.supportPhone) { el.textContent = SITE.supportPhone; if (el.tagName === 'A') el.href = SITE.supportPhoneHref || `tel:${SITE.supportPhone.replace(/\s/g, '')}`; }
+  });
+  document.querySelectorAll('[data-site="email"]').forEach(el => {
+    if (SITE.supportEmail) { el.textContent = SITE.supportEmail; if (el.tagName === 'A') el.href = `mailto:${SITE.supportEmail}`; }
+  });
+  document.querySelectorAll('[data-site="fssai"]').forEach(el => { el.textContent = SITE.fssai ? `FSSAI Lic. No. ${SITE.fssai}` : 'FSSAI license: pending — see launch checklist'; });
+  const payNote = $('#pay-mode-note');
+  if (payNote) {
+    const mode = getPayMode();
+    payNote.textContent = mode === 'live'
+      ? 'Secured by Razorpay — UPI, cards & netbanking.'
+      : mode === 'test' ? 'TEST payments mode — no real charge.' : 'Demo mode — no charge. Set a payments key to go live.';
+  }
+}
+
+async function loadSiteOverride() {
+  try {
+    const res = await fetch('config.site.json');
+    if (!res.ok) return;
+    const cfg = await res.json();
+    Object.assign(SITE, cfg.SITE || cfg);
+    fillSiteContacts();
+  } catch (e) { /* optional file — ignore */ }
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

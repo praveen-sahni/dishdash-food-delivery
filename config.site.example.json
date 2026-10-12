@@ -1,0 +1,15 @@
+{
+  "SITE": {
+    "shopName": "DishDash",
+    "supportPhone": "",
+    "supportPhoneHref": "",
+    "supportEmail": "",
+    "addressLine": "",
+    "hours": "11am–11pm daily",
+    "fssai": "",
+    "gstin": "",
+    "razorpayKeyId": "",
+    "quoteEndpoint": "",
+    "newsletterEndpoint": ""
+  }
+}

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calcBreakup, isReferralCode, isValidEmail, isValidPhone, normalizePromo, resolvePromo } from '../js/pricing.js';
+import { keyMode } from '../js/payments.js';
 import { zoneFor } from '../js/data.js';
 
 test('empty cart has zero totals', () => {
@@ -53,4 +54,11 @@ test('delivery zones vary fee and threshold', () => {
   assert.equal(calcBreakup(400, null, 'Bandra').delivery, 39);
   assert.equal(calcBreakup(600, null, 'Bandra').delivery, 0);
   assert.equal(calcBreakup(400).delivery, 29);
+});
+
+test('payment key modes', () => {
+  assert.equal(keyMode(''), 'demo');
+  assert.equal(keyMode('rzp_test_abc123'), 'test');
+  assert.equal(keyMode('rzp_live_abc123'), 'live');
+  assert.equal(keyMode('bogus'), 'invalid');
 });
